@@ -123,6 +123,35 @@ Compares Dart model classes against OpenAPI spec:
 - Missing properties in critical parent models
 - Properties that exist in spec but not in Dart class
 
+### Pass 5: Deep Schema Verification
+
+This pass is optional but strongly recommended for thorough verification.
+
+```bash
+python3 {core}/scripts/verify_schema_deep.py \
+  --config-dir {ext}/config \
+  --spec {package}/specs/openapi.json
+```
+
+Performs comprehensive schema verification beyond property names:
+- Property presence validation (all spec properties exist in Dart)
+- Required/optional (nullable) validation
+- All nested schemas have complete properties
+- All sealed class variants have correct properties
+
+Note: Full type validation is not yet implemented; the script currently
+focuses on property presence and nullability checks.
+
+Recommended for:
+- Initial implementation reviews
+- Major spec updates affecting critical models
+- Debugging serialization issues
+
+Configuration in `models.json`:
+- `nested_schemas`: Additional schemas to verify (not just critical_models)
+- `sealed_classes`: Sealed class hierarchies with all variants
+- `type_mappings`: Override default OpenAPI-to-Dart type mappings
+
 ---
 
 ## Quality Gates
@@ -145,6 +174,11 @@ python3 {core}/scripts/verify_readme.py --config-dir {ext}/config
 python3 {core}/scripts/verify_examples.py --config-dir {ext}/config
 python3 {core}/scripts/verify_model_properties.py --config-dir {ext}/config
 python3 {core}/scripts/verify_readme_code.py --config-dir {ext}/config
+
+# Optional: Deep schema verification (recommended for major changes)
+python3 {core}/scripts/verify_schema_deep.py \
+  --config-dir {ext}/config \
+  --spec {package}/specs/openapi.json
 ```
 
 ---
@@ -196,5 +230,30 @@ When adding new features, update your config files:
 |--------------|-------------|-------------|
 | New Tool property | `documentation.json` | Add to `tool_properties` |
 | New critical model | `models.json` | Add to `critical_models` |
+| New nested schema | `models.json` | Add to `nested_schemas` |
+| New sealed class | `models.json` | Add to `sealed_classes` with variants |
 | New drift pattern | `documentation.json` | Add to `drift_patterns` |
 | Removed API | `documentation.json` | Add to `removed_apis` |
+
+### models.json Extended Format
+
+```json
+{
+  "critical_models": [...],
+  "nested_schemas": [
+    {"name": "SchemaName", "file": "path/to/file.dart", "spec_schema": "SpecSchemaName"}
+  ],
+  "sealed_classes": [
+    {
+      "name": "SealedClassName",
+      "file": "path/to/file.dart",
+      "variants": [
+        {"dart_class": "VariantA", "spec_schema": "SpecVariantA"},
+        {"dart_class": "VariantB", "spec_schema": null, "extension": true}
+      ]
+    }
+  ],
+  "type_mappings": {...},
+  "excluded_properties": {"global": [], "SpecificSchema": ["prop"]}
+}
+```
