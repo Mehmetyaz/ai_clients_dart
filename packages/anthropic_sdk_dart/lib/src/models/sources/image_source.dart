@@ -64,6 +64,9 @@ sealed class ImageSource {
 /// Base64-encoded image source.
 @immutable
 class Base64ImageSource extends ImageSource {
+  /// The source type, always 'base64'.
+  String get type => 'base64';
+
   /// Base64-encoded image data.
   final String data;
 
@@ -83,7 +86,7 @@ class Base64ImageSource extends ImageSource {
 
   @override
   Map<String, dynamic> toJson() => {
-    'type': 'base64',
+    'type': type,
     'data': data,
     'media_type': mediaType.toJson(),
   };
@@ -115,6 +118,9 @@ class Base64ImageSource extends ImageSource {
 /// URL-based image source.
 @immutable
 class UrlImageSource extends ImageSource {
+  /// The source type, always 'url'.
+  String get type => 'url';
+
   /// URL of the image.
   final String url;
 
@@ -127,7 +133,7 @@ class UrlImageSource extends ImageSource {
   }
 
   @override
-  Map<String, dynamic> toJson() => {'type': 'url', 'url': url};
+  Map<String, dynamic> toJson() => {'type': type, 'url': url};
 
   /// Creates a copy with replaced values.
   UrlImageSource copyWith({String? url}) {
