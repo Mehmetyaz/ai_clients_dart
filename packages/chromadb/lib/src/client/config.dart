@@ -59,6 +59,35 @@ class ChromaConfig {
   /// Defaults to [Level.INFO].
   final Level logLevel;
 
+  /// Custom headers to include in all requests.
+  ///
+  /// These headers are merged with built-in headers (such as `Accept` and
+  /// `User-Agent`). When keys conflict, [defaultHeaders] override the
+  /// built-in headers.
+  ///
+  /// Request-specific headers (those passed per call) override both
+  /// built-in headers and [defaultHeaders] when they use the same key.
+  ///
+  /// Headers from [authProvider] (e.g., the `x-chroma-token` header from
+  /// [ApiKeyProvider]) are added by interceptors and will override any
+  /// matching key from built-in headers, [defaultHeaders], and
+  /// request-specific headers.
+  ///
+  /// **Effective precedence (lowest to highest):**
+  /// 1. Built-in headers (e.g., `Accept`, `User-Agent`)
+  /// 2. [defaultHeaders]
+  /// 3. Request-specific headers
+  /// 4. Headers added by [authProvider] interceptors
+  ///
+  /// **Immutability expectation:** This map is intended to be treated as
+  /// immutable after a [ChromaConfig] instance is created. Mutating the map
+  /// instance that was passed to the constructor may change [defaultHeaders]
+  /// as observed on the config object, but such changes will not be reflected
+  /// in already-initialized HTTP clients.
+  ///
+  /// Defaults to an empty map.
+  final Map<String, String> defaultHeaders;
+
   /// Creates a ChromaDB configuration.
   ///
   /// All parameters have sensible defaults for local development:
@@ -77,6 +106,7 @@ class ChromaConfig {
     this.timeout = const Duration(seconds: 30),
     this.retryPolicy = const RetryPolicy(),
     this.logLevel = Level.INFO,
+    this.defaultHeaders = const {},
   });
 
   /// Creates a copy of this configuration with optional modifications.
@@ -88,6 +118,7 @@ class ChromaConfig {
     Duration? timeout,
     RetryPolicy? retryPolicy,
     Level? logLevel,
+    Map<String, String>? defaultHeaders,
   }) {
     return ChromaConfig(
       baseUrl: baseUrl ?? this.baseUrl,
@@ -97,6 +128,7 @@ class ChromaConfig {
       timeout: timeout ?? this.timeout,
       retryPolicy: retryPolicy ?? this.retryPolicy,
       logLevel: logLevel ?? this.logLevel,
+      defaultHeaders: defaultHeaders ?? this.defaultHeaders,
     );
   }
 }
