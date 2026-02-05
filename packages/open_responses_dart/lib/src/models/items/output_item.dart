@@ -2,6 +2,7 @@ import 'package:meta/meta.dart';
 
 import '../common/equality_helpers.dart';
 import '../content/output_content.dart';
+import '../content/reasoning_summary_content.dart';
 import '../metadata/item_status.dart';
 import '../metadata/message_role.dart';
 import 'item.dart';
@@ -228,44 +229,19 @@ class ReasoningItem extends OutputItem {
       other is ReasoningItem &&
           runtimeType == other.runtimeType &&
           id == other.id &&
+          listOfMapsEqual(content, other.content) &&
           listsEqual(summary, other.summary) &&
           encryptedContent == other.encryptedContent;
 
   @override
-  int get hashCode => Object.hash(id, summary, encryptedContent);
+  int get hashCode => Object.hash(
+    id,
+    listOfMapsHashCode(content),
+    Object.hashAll(summary),
+    encryptedContent,
+  );
 
   @override
   String toString() =>
       'ReasoningItem(id: $id, content: $content, summary: $summary, encryptedContent: $encryptedContent)';
-}
-
-/// Content within a reasoning summary.
-@immutable
-class ReasoningSummaryContent {
-  /// The summary text.
-  final String text;
-
-  /// Creates a [ReasoningSummaryContent].
-  const ReasoningSummaryContent({required this.text});
-
-  /// Creates a [ReasoningSummaryContent] from JSON.
-  factory ReasoningSummaryContent.fromJson(Map<String, dynamic> json) {
-    return ReasoningSummaryContent(text: json['text'] as String);
-  }
-
-  /// Converts to JSON.
-  Map<String, dynamic> toJson() => {'type': 'summary_text', 'text': text};
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is ReasoningSummaryContent &&
-          runtimeType == other.runtimeType &&
-          text == other.text;
-
-  @override
-  int get hashCode => text.hashCode;
-
-  @override
-  String toString() => 'ReasoningSummaryContent(text: $text)';
 }
