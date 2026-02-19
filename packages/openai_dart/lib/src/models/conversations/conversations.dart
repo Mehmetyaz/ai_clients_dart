@@ -28,8 +28,7 @@
 /// final response = await client.responses.create(
 ///   CreateResponseRequest(
 ///     model: 'gpt-4o',
-///     input: 'Continue our conversation',
-///     conversation: ResponseConversation.id(conversation.id),
+///     input: ResponseInput.text('Continue our conversation'),
 ///   ),
 /// );
 ///

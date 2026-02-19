@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:meta/meta.dart';
 
+import '../../common/copy_with_sentinel.dart';
 import '../common/equality_helpers.dart';
 import '../config/function_call_status.dart';
 import '../config/item_status.dart';
@@ -57,20 +60,16 @@ class MessageItem extends Item {
       MessageItem(role: MessageRole.user, content: content);
 
   /// Creates a user message with simple text.
-  factory MessageItem.userText(String text) => MessageItem(
-    role: MessageRole.user,
-    content: [InputTextContent(text: text)],
-  );
+  factory MessageItem.userText(String text) =>
+      MessageItem(role: MessageRole.user, content: [InputContent.text(text)]);
 
   /// Creates a system message.
   factory MessageItem.system(List<InputContent> content) =>
       MessageItem(role: MessageRole.system, content: content);
 
   /// Creates a system message with simple text.
-  factory MessageItem.systemText(String text) => MessageItem(
-    role: MessageRole.system,
-    content: [InputTextContent(text: text)],
-  );
+  factory MessageItem.systemText(String text) =>
+      MessageItem(role: MessageRole.system, content: [InputContent.text(text)]);
 
   /// Creates a developer message.
   factory MessageItem.developer(List<InputContent> content) =>
@@ -79,7 +78,7 @@ class MessageItem extends Item {
   /// Creates a developer message with simple text.
   factory MessageItem.developerText(String text) => MessageItem(
     role: MessageRole.developer,
-    content: [InputTextContent(text: text)],
+    content: [InputContent.text(text)],
   );
 
   /// Creates an assistant message.
@@ -92,7 +91,7 @@ class MessageItem extends Item {
   /// as required by the API for assistant messages in multi-turn conversations.
   factory MessageItem.assistantText(String text) => MessageItem(
     role: MessageRole.assistant,
-    content: [AssistantTextContent(text: text)],
+    content: [InputContent.assistantText(text)],
   );
 
   /// Creates a [MessageItem] from JSON.
@@ -150,6 +149,20 @@ class FunctionCallItem extends Item {
 
   /// The function arguments as JSON string.
   final String arguments;
+
+  /// The arguments parsed as a JSON map.
+  ///
+  /// Throws [FormatException] if [arguments] is not valid JSON or does not
+  /// decode to a JSON object.
+  Map<String, dynamic> get argumentsMap {
+    final decoded = jsonDecode(arguments);
+    if (decoded is! Map) {
+      throw const FormatException(
+        'FunctionCallItem.arguments must be a JSON object',
+      );
+    }
+    return decoded.cast<String, dynamic>();
+  }
 
   /// Item status (for output items).
   final ItemStatus? status;
@@ -343,17 +356,21 @@ class FunctionCallOutputItem extends Item {
   };
 
   /// Creates a copy with updated fields.
+  ///
+  /// Nullable fields can be explicitly set to `null` to clear them.
   FunctionCallOutputItem copyWith({
-    String? id,
+    Object? id = unsetCopyWithValue,
     String? callId,
     FunctionCallOutput? output,
-    FunctionCallStatus? status,
+    Object? status = unsetCopyWithValue,
   }) {
     return FunctionCallOutputItem(
-      id: id ?? this.id,
+      id: id == unsetCopyWithValue ? this.id : id as String?,
       callId: callId ?? this.callId,
       output: output ?? this.output,
-      status: status ?? this.status,
+      status: status == unsetCopyWithValue
+          ? this.status
+          : status as FunctionCallStatus?,
     );
   }
 

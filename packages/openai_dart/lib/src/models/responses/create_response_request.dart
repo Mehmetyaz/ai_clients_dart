@@ -1,9 +1,11 @@
 import 'package:meta/meta.dart';
 
 import '../chat/chat_completion_request.dart' show StreamOptions;
+import '../common/copy_with_sentinel.dart';
 import 'common/equality_helpers.dart';
 import 'config/config.dart';
 import 'items/item.dart';
+import 'response_input.dart';
 import 'tools/tools.dart';
 
 /// Request to create a response.
@@ -17,17 +19,17 @@ import 'tools/tools.dart';
 /// // Simple text request
 /// final request = CreateResponseRequest(
 ///   model: 'gpt-4o',
-///   input: 'Hello, how are you?',
+///   input: ResponseInput.text('Hello, how are you?'),
 /// );
 ///
 /// // Multi-turn conversation with items
 /// final request = CreateResponseRequest(
 ///   model: 'gpt-4o',
-///   input: [
+///   input: ResponseInput.items([
 ///     MessageItem.userText('What is 2+2?'),
 ///     MessageItem.assistantText('4'),
 ///     MessageItem.userText('What is 3+3?'),
-///   ],
+///   ]),
 /// );
 /// ```
 @immutable
@@ -37,9 +39,9 @@ class CreateResponseRequest {
 
   /// The input to the model.
   ///
-  /// Can be a simple string or a list of [Item] objects for multi-turn
-  /// conversations.
-  final Object input;
+  /// Can be a [ResponseInputText] for simple text or [ResponseInputItems]
+  /// for multi-turn conversations with [Item] objects.
+  final ResponseInput input;
 
   /// System instructions for the model.
   ///
@@ -99,7 +101,12 @@ class CreateResponseRequest {
   final ServiceTier? serviceTier;
 
   /// Custom metadata for the request.
-  final Map<String, String>? metadata;
+  ///
+  /// Values can be of any type and will be automatically converted to strings
+  /// when serialized to JSON, as the API requires string values. Null values
+  /// are omitted. After a JSON round-trip (`toJson()` then `fromJson()`), all
+  /// metadata values will be strings.
+  final Map<String, dynamic>? metadata;
 
   /// Additional data to include in the response.
   final List<Include>? include;
@@ -163,28 +170,16 @@ class CreateResponseRequest {
   }) {
     return CreateResponseRequest(
       model: model,
-      input: text,
+      input: ResponseInput.text(text),
       instructions: instructions,
     );
   }
 
   /// Creates a [CreateResponseRequest] from JSON.
   factory CreateResponseRequest.fromJson(Map<String, dynamic> json) {
-    final inputJson = json['input'];
-    final Object input;
-    if (inputJson is String) {
-      input = inputJson;
-    } else if (inputJson is List) {
-      input = inputJson
-          .map((e) => Item.fromJson(e as Map<String, dynamic>))
-          .toList();
-    } else {
-      throw FormatException('Invalid input format: $inputJson');
-    }
-
     return CreateResponseRequest(
       model: json['model'] as String,
-      input: input,
+      input: ResponseInput.fromJson(json['input']),
       instructions: json['instructions'] as String?,
       tools: (json['tools'] as List?)
           ?.map((e) => ResponseTool.fromJson(e as Map<String, dynamic>))
@@ -217,7 +212,7 @@ class CreateResponseRequest {
       serviceTier: json['service_tier'] != null
           ? ServiceTier.fromJson(json['service_tier'] as String)
           : null,
-      metadata: (json['metadata'] as Map?)?.cast<String, String>(),
+      metadata: (json['metadata'] as Map?)?.cast<String, dynamic>(),
       include: (json['include'] as List?)
           ?.map((e) => Include.fromJson(e as String))
           .toList(),
@@ -232,18 +227,9 @@ class CreateResponseRequest {
 
   /// Converts to JSON.
   Map<String, dynamic> toJson() {
-    final Object inputJson;
-    if (input is String) {
-      inputJson = input;
-    } else if (input is List<Item>) {
-      inputJson = (input as List<Item>).map((e) => e.toJson()).toList();
-    } else {
-      throw ArgumentError('Invalid input type: ${input.runtimeType}');
-    }
-
     return {
       'model': model,
-      'input': inputJson,
+      'input': input.toJson(),
       if (instructions != null) 'instructions': instructions,
       if (tools != null) 'tools': tools!.map((e) => e.toJson()).toList(),
       if (toolChoice != null) 'tool_choice': toolChoice!.toJson(),
@@ -261,7 +247,12 @@ class CreateResponseRequest {
       if (truncation != null) 'truncation': truncation!.toJson(),
       if (parallelToolCalls != null) 'parallel_tool_calls': parallelToolCalls,
       if (serviceTier != null) 'service_tier': serviceTier!.toJson(),
-      if (metadata != null) 'metadata': metadata,
+      if (metadata case final metadata?
+          when metadata.values.any((v) => v != null))
+        'metadata': {
+          for (final MapEntry(:key, :value) in metadata.entries)
+            if (value != null) key: value.toString(),
+        },
       if (include != null) 'include': include!.map((e) => e.toJson()).toList(),
       if (store != null) 'store': store,
       if (background != null) 'background': background,
@@ -273,61 +264,104 @@ class CreateResponseRequest {
   }
 
   /// Creates a copy with replaced values.
+  ///
+  /// Nullable fields can be explicitly set to `null` to clear them.
+  /// Omitted fields retain their current values.
   CreateResponseRequest copyWith({
     String? model,
-    Object? input,
-    String? instructions,
-    List<ResponseTool>? tools,
-    ResponseToolChoice? toolChoice,
-    String? previousResponseId,
-    int? maxOutputTokens,
-    double? temperature,
-    double? topP,
-    double? presencePenalty,
-    double? frequencyPenalty,
-    bool? stream,
-    StreamOptions? streamOptions,
-    ReasoningConfig? reasoning,
-    TextConfig? text,
-    Truncation? truncation,
-    bool? parallelToolCalls,
-    ServiceTier? serviceTier,
-    Map<String, String>? metadata,
-    List<Include>? include,
-    bool? store,
-    bool? background,
-    int? maxToolCalls,
-    String? safetyIdentifier,
-    String? promptCacheKey,
-    int? topLogprobs,
+    ResponseInput? input,
+    Object? instructions = unsetCopyWithValue,
+    Object? tools = unsetCopyWithValue,
+    Object? toolChoice = unsetCopyWithValue,
+    Object? previousResponseId = unsetCopyWithValue,
+    Object? maxOutputTokens = unsetCopyWithValue,
+    Object? temperature = unsetCopyWithValue,
+    Object? topP = unsetCopyWithValue,
+    Object? presencePenalty = unsetCopyWithValue,
+    Object? frequencyPenalty = unsetCopyWithValue,
+    Object? stream = unsetCopyWithValue,
+    Object? streamOptions = unsetCopyWithValue,
+    Object? reasoning = unsetCopyWithValue,
+    Object? text = unsetCopyWithValue,
+    Object? truncation = unsetCopyWithValue,
+    Object? parallelToolCalls = unsetCopyWithValue,
+    Object? serviceTier = unsetCopyWithValue,
+    Object? metadata = unsetCopyWithValue,
+    Object? include = unsetCopyWithValue,
+    Object? store = unsetCopyWithValue,
+    Object? background = unsetCopyWithValue,
+    Object? maxToolCalls = unsetCopyWithValue,
+    Object? safetyIdentifier = unsetCopyWithValue,
+    Object? promptCacheKey = unsetCopyWithValue,
+    Object? topLogprobs = unsetCopyWithValue,
   }) {
     return CreateResponseRequest(
       model: model ?? this.model,
       input: input ?? this.input,
-      instructions: instructions ?? this.instructions,
-      tools: tools ?? this.tools,
-      toolChoice: toolChoice ?? this.toolChoice,
-      previousResponseId: previousResponseId ?? this.previousResponseId,
-      maxOutputTokens: maxOutputTokens ?? this.maxOutputTokens,
-      temperature: temperature ?? this.temperature,
-      topP: topP ?? this.topP,
-      presencePenalty: presencePenalty ?? this.presencePenalty,
-      frequencyPenalty: frequencyPenalty ?? this.frequencyPenalty,
-      stream: stream ?? this.stream,
-      streamOptions: streamOptions ?? this.streamOptions,
-      reasoning: reasoning ?? this.reasoning,
-      text: text ?? this.text,
-      truncation: truncation ?? this.truncation,
-      parallelToolCalls: parallelToolCalls ?? this.parallelToolCalls,
-      serviceTier: serviceTier ?? this.serviceTier,
-      metadata: metadata ?? this.metadata,
-      include: include ?? this.include,
-      store: store ?? this.store,
-      background: background ?? this.background,
-      maxToolCalls: maxToolCalls ?? this.maxToolCalls,
-      safetyIdentifier: safetyIdentifier ?? this.safetyIdentifier,
-      promptCacheKey: promptCacheKey ?? this.promptCacheKey,
-      topLogprobs: topLogprobs ?? this.topLogprobs,
+      instructions: instructions == unsetCopyWithValue
+          ? this.instructions
+          : instructions as String?,
+      tools: tools == unsetCopyWithValue
+          ? this.tools
+          : tools as List<ResponseTool>?,
+      toolChoice: toolChoice == unsetCopyWithValue
+          ? this.toolChoice
+          : toolChoice as ResponseToolChoice?,
+      previousResponseId: previousResponseId == unsetCopyWithValue
+          ? this.previousResponseId
+          : previousResponseId as String?,
+      maxOutputTokens: maxOutputTokens == unsetCopyWithValue
+          ? this.maxOutputTokens
+          : maxOutputTokens as int?,
+      temperature: temperature == unsetCopyWithValue
+          ? this.temperature
+          : temperature as double?,
+      topP: topP == unsetCopyWithValue ? this.topP : topP as double?,
+      presencePenalty: presencePenalty == unsetCopyWithValue
+          ? this.presencePenalty
+          : presencePenalty as double?,
+      frequencyPenalty: frequencyPenalty == unsetCopyWithValue
+          ? this.frequencyPenalty
+          : frequencyPenalty as double?,
+      stream: stream == unsetCopyWithValue ? this.stream : stream as bool?,
+      streamOptions: streamOptions == unsetCopyWithValue
+          ? this.streamOptions
+          : streamOptions as StreamOptions?,
+      reasoning: reasoning == unsetCopyWithValue
+          ? this.reasoning
+          : reasoning as ReasoningConfig?,
+      text: text == unsetCopyWithValue ? this.text : text as TextConfig?,
+      truncation: truncation == unsetCopyWithValue
+          ? this.truncation
+          : truncation as Truncation?,
+      parallelToolCalls: parallelToolCalls == unsetCopyWithValue
+          ? this.parallelToolCalls
+          : parallelToolCalls as bool?,
+      serviceTier: serviceTier == unsetCopyWithValue
+          ? this.serviceTier
+          : serviceTier as ServiceTier?,
+      metadata: metadata == unsetCopyWithValue
+          ? this.metadata
+          : metadata as Map<String, dynamic>?,
+      include: include == unsetCopyWithValue
+          ? this.include
+          : include as List<Include>?,
+      store: store == unsetCopyWithValue ? this.store : store as bool?,
+      background: background == unsetCopyWithValue
+          ? this.background
+          : background as bool?,
+      maxToolCalls: maxToolCalls == unsetCopyWithValue
+          ? this.maxToolCalls
+          : maxToolCalls as int?,
+      safetyIdentifier: safetyIdentifier == unsetCopyWithValue
+          ? this.safetyIdentifier
+          : safetyIdentifier as String?,
+      promptCacheKey: promptCacheKey == unsetCopyWithValue
+          ? this.promptCacheKey
+          : promptCacheKey as String?,
+      topLogprobs: topLogprobs == unsetCopyWithValue
+          ? this.topLogprobs
+          : topLogprobs as int?,
     );
   }
 
@@ -336,19 +370,9 @@ class CreateResponseRequest {
     if (identical(this, other)) return true;
     if (other is! CreateResponseRequest) return false;
 
-    // Compare input
-    bool inputEqual;
-    if (input is String && other.input is String) {
-      inputEqual = input == other.input;
-    } else if (input is List<Item> && other.input is List<Item>) {
-      inputEqual = listsEqual(input as List<Item>, other.input as List<Item>);
-    } else {
-      inputEqual = false;
-    }
-
     return runtimeType == other.runtimeType &&
         model == other.model &&
-        inputEqual &&
+        input == other.input &&
         instructions == other.instructions &&
         listsEqual(tools, other.tools) &&
         toolChoice == other.toolChoice &&

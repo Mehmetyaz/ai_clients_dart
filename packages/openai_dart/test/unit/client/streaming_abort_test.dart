@@ -167,7 +167,10 @@ void main() {
 
       await responsesClient.responses
           .createStream(
-            const CreateResponseRequest(model: 'gpt-4', input: 'Hello'),
+            const CreateResponseRequest(
+              model: 'gpt-4',
+              input: ResponseInput.text('Hello'),
+            ),
           )
           .drain<void>();
 
@@ -177,7 +180,9 @@ void main() {
       final completionsMockClient = MockClient.streaming((request, _) async {
         return http.StreamedResponse(
           Stream.fromIterable([
-            utf8.encode('data: {"choices":[{"text":"Hello"}]}\n\n'),
+            utf8.encode(
+              'data: {"id":"cmpl-test","object":"text_completion","created":1234567890,"model":"gpt-3.5-turbo-instruct","choices":[{"text":"Hello","index":0,"logprobs":null,"finish_reason":"stop"}]}\n\n',
+            ),
             utf8.encode('data: [DONE]\n\n'),
           ]),
           200,
@@ -215,7 +220,10 @@ void main() {
         );
 
         c.responses.createStream(
-          const CreateResponseRequest(model: 'gpt-4', input: 'Hello'),
+          const CreateResponseRequest(
+            model: 'gpt-4',
+            input: ResponseInput.text('Hello'),
+          ),
           abortTrigger: abortTrigger,
         );
 
