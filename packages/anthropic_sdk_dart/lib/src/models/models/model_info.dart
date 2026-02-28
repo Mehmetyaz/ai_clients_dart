@@ -1,5 +1,7 @@
 import 'package:meta/meta.dart';
 
+import '../common/equality.dart';
+
 /// Information about an Anthropic model.
 @immutable
 class ModelInfo {
@@ -122,23 +124,15 @@ class ModelListResponse {
       identical(this, other) ||
       other is ModelListResponse &&
           runtimeType == other.runtimeType &&
-          _listsEqual(data, other.data) &&
+          listsEqual(data, other.data) &&
           hasMore == other.hasMore &&
           firstId == other.firstId &&
           lastId == other.lastId;
 
   @override
-  int get hashCode => Object.hash(data, hasMore, firstId, lastId);
+  int get hashCode => Object.hash(listHash(data), hasMore, firstId, lastId);
 
   @override
   String toString() =>
       'ModelListResponse(data: $data, hasMore: $hasMore, firstId: $firstId, lastId: $lastId)';
-}
-
-bool _listsEqual<T>(List<T> a, List<T> b) {
-  if (a.length != b.length) return false;
-  for (var i = 0; i < a.length; i++) {
-    if (a[i] != b[i]) return false;
-  }
-  return true;
 }

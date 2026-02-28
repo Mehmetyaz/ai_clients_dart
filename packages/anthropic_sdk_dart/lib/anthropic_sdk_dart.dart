@@ -56,6 +56,7 @@ export 'src/errors/exceptions.dart'
 
 // Extensions
 export 'src/extensions/message_extensions.dart';
+export 'src/extensions/stream_extensions.dart';
 
 // Models - Batches
 export 'src/models/batches/batch_request.dart';
@@ -94,6 +95,7 @@ export 'src/models/metadata/cache_control.dart';
 export 'src/models/metadata/metadata.dart';
 export 'src/models/metadata/processing_status.dart';
 export 'src/models/metadata/service_tier.dart';
+export 'src/models/metadata/speed.dart';
 export 'src/models/metadata/stop_reason.dart';
 export 'src/models/metadata/usage.dart';
 
@@ -113,6 +115,7 @@ export 'src/models/sources/image_source.dart';
 // Models - Streaming
 export 'src/models/streaming/content_block_delta.dart';
 export 'src/models/streaming/message_delta.dart';
+export 'src/models/streaming/message_stream_accumulator.dart';
 export 'src/models/streaming/message_stream_event.dart';
 
 // Models - Token Counting
@@ -122,6 +125,7 @@ export 'src/models/tokens/token_count.dart';
 export 'src/models/tools/built_in_tools.dart';
 export 'src/models/tools/input_schema.dart';
 export 'src/models/tools/tool.dart';
+export 'src/models/tools/tool_caller.dart';
 export 'src/models/tools/tool_choice.dart';
 export 'src/models/tools/tool_definition.dart';
 

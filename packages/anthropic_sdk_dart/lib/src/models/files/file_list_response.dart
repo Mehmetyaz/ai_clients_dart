@@ -1,5 +1,7 @@
 import 'package:meta/meta.dart';
 
+import '../common/equality.dart';
+
 import 'file_metadata.dart';
 
 /// Response for listing files.
@@ -65,14 +67,13 @@ class FileListResponse {
       identical(this, other) ||
       other is FileListResponse &&
           runtimeType == other.runtimeType &&
-          _listsEqual(data, other.data) &&
+          listsEqual(data, other.data) &&
           hasMore == other.hasMore &&
           firstId == other.firstId &&
           lastId == other.lastId;
 
   @override
-  int get hashCode =>
-      Object.hash(Object.hashAll(data), hasMore, firstId, lastId);
+  int get hashCode => Object.hash(listHash(data), hasMore, firstId, lastId);
 
   @override
   String toString() =>
@@ -81,12 +82,4 @@ class FileListResponse {
       'hasMore: $hasMore, '
       'firstId: $firstId, '
       'lastId: $lastId)';
-}
-
-bool _listsEqual<T>(List<T> a, List<T> b) {
-  if (a.length != b.length) return false;
-  for (var i = 0; i < a.length; i++) {
-    if (a[i] != b[i]) return false;
-  }
-  return true;
 }

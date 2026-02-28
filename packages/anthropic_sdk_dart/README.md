@@ -31,21 +31,27 @@ Unofficial Dart client for the **[Anthropic API](https://docs.anthropic.com/en/a
 - ✅ Streaming support (`messages.createStream`) with SSE
 - ✅ Request cancellation (via `abortTrigger`)
 - ✅ Token counting (`messages.countTokens`)
+- ✅ Advanced request controls (`outputConfig`, `inferenceGeo`, `container`, `speed`)
 
 ### Tool Use
 
 - ✅ Custom function/tool calling
 - ✅ Tool choice modes (auto, any, tool, none)
+- ✅ Tool governance metadata (`allowedCallers`, `deferLoading`, `strict`, `inputExamples`, `eagerInputStreaming`)
 - ✅ Built-in tools:
   - Web search (`WebSearchTool`)
+  - Web fetch (`WebFetchTool`)
   - Text editor (`TextEditorTool`)
   - Bash (`BashTool`)
   - Computer use (`ComputerUseTool`)
   - Code execution (`CodeExecutionTool`)
+  - Memory (`MemoryTool`)
+  - Tool search (`ToolSearchToolBm25`, `ToolSearchToolRegex`)
 
 ### Extended Thinking
 
 - ✅ Extended thinking mode (`ThinkingEnabled`)
+- ✅ Adaptive thinking mode (`ThinkingAdaptive`)
 - ✅ Thinking budget control
 - ✅ Streaming thinking blocks
 
@@ -275,6 +281,46 @@ await for (final event in stream) {
     }
   }
 }
+```
+
+</details>
+
+<details>
+<summary><b>Streaming with Extensions</b></summary>
+
+Each extension method consumes the stream, so use one per `createStream()` call:
+
+```dart
+import 'package:anthropic_sdk_dart/anthropic_sdk_dart.dart';
+
+Stream<MessageStreamEvent> createStream() => client.messages.createStream(
+  MessageCreateRequest(
+    model: 'claude-sonnet-4-20250514',
+    maxTokens: 256,
+    messages: [InputMessage.user('Count from 1 to 10 slowly.')],
+  ),
+);
+
+// Option 1: Collect all text into a single string
+final text = await createStream().collectText();
+
+// Option 2: Iterate text deltas as they arrive
+await for (final delta in createStream().textDeltas()) {
+  stdout.write(delta);
+}
+
+// Option 3: Accumulate streaming chunks into a complete Message
+await for (final accumulator in createStream().accumulate()) {
+  print('Content so far: ${accumulator.text}');
+}
+
+// Option 4: Use MessageStreamAccumulator directly for full control
+final accumulator = MessageStreamAccumulator();
+await for (final event in createStream()) {
+  accumulator.add(event);
+}
+final message = accumulator.toMessage();
+print(message.text);
 ```
 
 </details>
@@ -603,6 +649,61 @@ try {
 
 </details>
 
+## Extension Methods
+
+The package provides convenient extension methods for common operations:
+
+### Stream Extensions
+
+Each extension method consumes the stream, so use one per `createStream()` call:
+
+```dart
+// Collect all text from a streaming response
+final text = await stream.collectText();
+
+// Iterate only text deltas (requires a new stream)
+await for (final delta in stream.textDeltas()) {
+  stdout.write(delta);
+}
+
+// Iterate thinking deltas (requires a new stream)
+await for (final thinking in stream.thinkingDeltas()) {
+  print(thinking);
+}
+
+// Accumulate streaming chunks into a complete response (requires a new stream)
+await for (final accumulator in stream.accumulate()) {
+  print('Content so far: ${accumulator.text}');
+}
+
+// Or use MessageStreamAccumulator directly for full control (requires a new stream)
+final accumulator = MessageStreamAccumulator();
+await for (final event in stream) {
+  accumulator.add(event);
+}
+final message = accumulator.toMessage();
+print(message.text);
+```
+
+### Message Extensions
+
+```dart
+// Access text content
+final text = message.text;
+
+// Check for tool use
+if (message.hasToolUse) {
+  for (final toolUse in message.toolUseBlocks) {
+    print('Tool: ${toolUse.name}');
+  }
+}
+
+// Access thinking content
+if (message.hasThinking) {
+  print(message.thinking);
+}
+```
+
 ## Examples
 
 See the [`example/`](example/) directory for comprehensive examples:
@@ -611,7 +712,7 @@ See the [`example/`](example/) directory for comprehensive examples:
 |---------|-------------|
 | [anthropic_sdk_dart_example.dart](example/anthropic_sdk_dart_example.dart) | Quick start example |
 | [messages_example.dart](example/messages_example.dart) | Basic message creation |
-| [streaming_example.dart](example/streaming_example.dart) | SSE streaming |
+| [streaming_example.dart](example/streaming_example.dart) | SSE streaming with accumulator |
 | [tool_calling_example.dart](example/tool_calling_example.dart) | Function/tool use |
 | [vision_example.dart](example/vision_example.dart) | Image analysis |
 | [document_example.dart](example/document_example.dart) | PDF document processing |

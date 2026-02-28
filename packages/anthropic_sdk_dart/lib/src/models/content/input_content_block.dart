@@ -1,9 +1,11 @@
 import 'package:meta/meta.dart';
 
 import '../common/copy_with_sentinel.dart';
+import '../common/equality.dart';
 import '../metadata/cache_control.dart';
 import '../sources/document_source.dart';
 import '../sources/image_source.dart';
+import '../tools/tool_caller.dart';
 
 /// Content block for input messages.
 ///
@@ -46,6 +48,49 @@ sealed class InputContentBlock {
     CacheControlEphemeral? cacheControl,
   }) = ToolResultInputBlock;
 
+  /// Creates a server tool use block (for assistant messages).
+  factory InputContentBlock.serverToolUse({
+    required String id,
+    required String name,
+    required Map<String, dynamic> input,
+    ToolCaller? caller,
+    CacheControlEphemeral? cacheControl,
+  }) = ServerToolUseInputBlock;
+
+  /// Creates a web search tool result block.
+  factory InputContentBlock.webSearchToolResult({
+    required String toolUseId,
+    required Map<String, dynamic> content,
+    ToolCaller? caller,
+    CacheControlEphemeral? cacheControl,
+  }) = WebSearchToolResultInputBlock;
+
+  /// Creates a web fetch tool result block.
+  factory InputContentBlock.webFetchToolResult({
+    required String toolUseId,
+    required Map<String, dynamic> content,
+    ToolCaller? caller,
+    CacheControlEphemeral? cacheControl,
+  }) = WebFetchToolResultInputBlock;
+
+  /// Creates a container upload block.
+  factory InputContentBlock.containerUpload({
+    required String fileId,
+    CacheControlEphemeral? cacheControl,
+  }) = ContainerUploadInputBlock;
+
+  /// Creates a compaction block.
+  factory InputContentBlock.compaction({
+    required String? content,
+    CacheControlEphemeral? cacheControl,
+  }) = CompactionInputBlock;
+
+  /// Creates a tool reference block.
+  factory InputContentBlock.toolReference({
+    required String toolName,
+    CacheControlEphemeral? cacheControl,
+  }) = ToolReferenceInputBlock;
+
   /// Creates an [InputContentBlock] from JSON.
   factory InputContentBlock.fromJson(Map<String, dynamic> json) {
     final type = json['type'] as String;
@@ -55,6 +100,21 @@ sealed class InputContentBlock {
       'document' => DocumentInputBlock.fromJson(json),
       'tool_use' => ToolUseInputBlock.fromJson(json),
       'tool_result' => ToolResultInputBlock.fromJson(json),
+      'server_tool_use' => ServerToolUseInputBlock.fromJson(json),
+      'web_search_tool_result' => WebSearchToolResultInputBlock.fromJson(json),
+      'web_fetch_tool_result' => WebFetchToolResultInputBlock.fromJson(json),
+      'code_execution_tool_result' =>
+        CodeExecutionToolResultInputBlock.fromJson(json),
+      'bash_code_execution_tool_result' =>
+        BashCodeExecutionToolResultInputBlock.fromJson(json),
+      'text_editor_code_execution_tool_result' =>
+        TextEditorCodeExecutionToolResultInputBlock.fromJson(json),
+      'tool_search_tool_result' => ToolSearchToolResultInputBlock.fromJson(
+        json,
+      ),
+      'container_upload' => ContainerUploadInputBlock.fromJson(json),
+      'compaction' => CompactionInputBlock.fromJson(json),
+      'tool_reference' => ToolReferenceInputBlock.fromJson(json),
       _ => throw FormatException('Unknown InputContentBlock type: $type'),
     };
   }
@@ -264,6 +324,9 @@ class ToolUseInputBlock extends InputContentBlock {
   /// Input parameters for the tool.
   final Map<String, dynamic> input;
 
+  /// Caller metadata for this tool invocation.
+  final ToolCaller? caller;
+
   /// Cache control for this block.
   final CacheControlEphemeral? cacheControl;
 
@@ -272,6 +335,7 @@ class ToolUseInputBlock extends InputContentBlock {
     required this.id,
     required this.name,
     required this.input,
+    this.caller,
     this.cacheControl,
   });
 
@@ -281,6 +345,9 @@ class ToolUseInputBlock extends InputContentBlock {
       id: json['id'] as String,
       name: json['name'] as String,
       input: json['input'] as Map<String, dynamic>,
+      caller: json['caller'] != null
+          ? ToolCaller.fromJson(json['caller'] as Map<String, dynamic>)
+          : null,
       cacheControl: json['cache_control'] != null
           ? CacheControlEphemeral.fromJson(
               json['cache_control'] as Map<String, dynamic>,
@@ -295,6 +362,7 @@ class ToolUseInputBlock extends InputContentBlock {
     'id': id,
     'name': name,
     'input': input,
+    if (caller != null) 'caller': caller!.toJson(),
     if (cacheControl != null) 'cache_control': cacheControl!.toJson(),
   };
 
@@ -303,12 +371,16 @@ class ToolUseInputBlock extends InputContentBlock {
     String? id,
     String? name,
     Map<String, dynamic>? input,
+    Object? caller = unsetCopyWithValue,
     Object? cacheControl = unsetCopyWithValue,
   }) {
     return ToolUseInputBlock(
       id: id ?? this.id,
       name: name ?? this.name,
       input: input ?? this.input,
+      caller: caller == unsetCopyWithValue
+          ? this.caller
+          : caller as ToolCaller?,
       cacheControl: cacheControl == unsetCopyWithValue
           ? this.cacheControl
           : cacheControl as CacheControlEphemeral?,
@@ -322,16 +394,18 @@ class ToolUseInputBlock extends InputContentBlock {
           runtimeType == other.runtimeType &&
           id == other.id &&
           name == other.name &&
-          _mapsEqual(input, other.input) &&
+          mapsEqual(input, other.input) &&
+          caller == other.caller &&
           cacheControl == other.cacheControl;
 
   @override
-  int get hashCode => Object.hash(id, name, input, cacheControl);
+  int get hashCode =>
+      Object.hash(id, name, mapHash(input), caller, cacheControl);
 
   @override
   String toString() =>
       'ToolUseInputBlock(id: $id, name: $name, input: $input, '
-      'cacheControl: $cacheControl)';
+      'caller: $caller, cacheControl: $cacheControl)';
 }
 
 /// Content type for tool results.
@@ -495,12 +569,13 @@ class ToolResultInputBlock extends InputContentBlock {
       other is ToolResultInputBlock &&
           runtimeType == other.runtimeType &&
           toolUseId == other.toolUseId &&
-          _listsEqual(content, other.content) &&
+          listsEqual(content, other.content) &&
           isError == other.isError &&
           cacheControl == other.cacheControl;
 
   @override
-  int get hashCode => Object.hash(toolUseId, content, isError, cacheControl);
+  int get hashCode =>
+      Object.hash(toolUseId, listHash(content), isError, cacheControl);
 
   @override
   String toString() =>
@@ -508,22 +583,759 @@ class ToolResultInputBlock extends InputContentBlock {
       'isError: $isError, cacheControl: $cacheControl)';
 }
 
-bool _listsEqual<T>(List<T>? a, List<T>? b) {
-  if (a == null && b == null) return true;
-  if (a == null || b == null) return false;
-  if (a.length != b.length) return false;
-  for (var i = 0; i < a.length; i++) {
-    if (a[i] != b[i]) return false;
+/// Server tool use block for assistant messages in input.
+@immutable
+class ServerToolUseInputBlock extends InputContentBlock {
+  /// Unique identifier for this tool use.
+  final String id;
+
+  /// Name of the server tool.
+  final String name;
+
+  /// Input parameters for the tool.
+  final Map<String, dynamic> input;
+
+  /// Caller metadata.
+  final ToolCaller? caller;
+
+  /// Cache control for this block.
+  final CacheControlEphemeral? cacheControl;
+
+  /// Creates a [ServerToolUseInputBlock].
+  const ServerToolUseInputBlock({
+    required this.id,
+    required this.name,
+    required this.input,
+    this.caller,
+    this.cacheControl,
+  });
+
+  /// Creates a [ServerToolUseInputBlock] from JSON.
+  factory ServerToolUseInputBlock.fromJson(Map<String, dynamic> json) {
+    return ServerToolUseInputBlock(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      input: (json['input'] as Map).cast<String, dynamic>(),
+      caller: json['caller'] != null
+          ? ToolCaller.fromJson(json['caller'] as Map<String, dynamic>)
+          : null,
+      cacheControl: json['cache_control'] != null
+          ? CacheControlEphemeral.fromJson(
+              json['cache_control'] as Map<String, dynamic>,
+            )
+          : null,
+    );
   }
-  return true;
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'type': 'server_tool_use',
+    'id': id,
+    'name': name,
+    'input': input,
+    if (caller != null) 'caller': caller!.toJson(),
+    if (cacheControl != null) 'cache_control': cacheControl!.toJson(),
+  };
+
+  /// Creates a copy with replaced values.
+  ServerToolUseInputBlock copyWith({
+    String? id,
+    String? name,
+    Map<String, dynamic>? input,
+    Object? caller = unsetCopyWithValue,
+    Object? cacheControl = unsetCopyWithValue,
+  }) {
+    return ServerToolUseInputBlock(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      input: input ?? this.input,
+      caller: caller == unsetCopyWithValue
+          ? this.caller
+          : caller as ToolCaller?,
+      cacheControl: cacheControl == unsetCopyWithValue
+          ? this.cacheControl
+          : cacheControl as CacheControlEphemeral?,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ServerToolUseInputBlock &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          name == other.name &&
+          mapsEqual(input, other.input) &&
+          caller == other.caller &&
+          cacheControl == other.cacheControl;
+
+  @override
+  int get hashCode =>
+      Object.hash(id, name, mapHash(input), caller, cacheControl);
+
+  @override
+  String toString() =>
+      'ServerToolUseInputBlock(id: $id, name: $name, input: $input, '
+      'caller: $caller, cacheControl: $cacheControl)';
 }
 
-bool _mapsEqual<K, V>(Map<K, V>? a, Map<K, V>? b) {
-  if (a == null && b == null) return true;
-  if (a == null || b == null) return false;
-  if (a.length != b.length) return false;
-  for (final key in a.keys) {
-    if (!b.containsKey(key) || a[key] != b[key]) return false;
+/// Web search tool result block in input.
+@immutable
+class WebSearchToolResultInputBlock extends InputContentBlock {
+  /// The ID of the related tool use.
+  final String toolUseId;
+
+  /// The result content payload.
+  final Map<String, dynamic> content;
+
+  /// Caller metadata.
+  final ToolCaller? caller;
+
+  /// Cache control for this block.
+  final CacheControlEphemeral? cacheControl;
+
+  /// Creates a [WebSearchToolResultInputBlock].
+  const WebSearchToolResultInputBlock({
+    required this.toolUseId,
+    required this.content,
+    this.caller,
+    this.cacheControl,
+  });
+
+  /// Creates a [WebSearchToolResultInputBlock] from JSON.
+  factory WebSearchToolResultInputBlock.fromJson(Map<String, dynamic> json) {
+    return WebSearchToolResultInputBlock(
+      toolUseId: json['tool_use_id'] as String,
+      content: (json['content'] as Map).cast<String, dynamic>(),
+      caller: json['caller'] != null
+          ? ToolCaller.fromJson(json['caller'] as Map<String, dynamic>)
+          : null,
+      cacheControl: json['cache_control'] != null
+          ? CacheControlEphemeral.fromJson(
+              json['cache_control'] as Map<String, dynamic>,
+            )
+          : null,
+    );
   }
-  return true;
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'type': 'web_search_tool_result',
+    'tool_use_id': toolUseId,
+    'content': content,
+    if (caller != null) 'caller': caller!.toJson(),
+    if (cacheControl != null) 'cache_control': cacheControl!.toJson(),
+  };
+
+  /// Creates a copy with replaced values.
+  WebSearchToolResultInputBlock copyWith({
+    String? toolUseId,
+    Map<String, dynamic>? content,
+    Object? caller = unsetCopyWithValue,
+    Object? cacheControl = unsetCopyWithValue,
+  }) {
+    return WebSearchToolResultInputBlock(
+      toolUseId: toolUseId ?? this.toolUseId,
+      content: content ?? this.content,
+      caller: caller == unsetCopyWithValue
+          ? this.caller
+          : caller as ToolCaller?,
+      cacheControl: cacheControl == unsetCopyWithValue
+          ? this.cacheControl
+          : cacheControl as CacheControlEphemeral?,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is WebSearchToolResultInputBlock &&
+          runtimeType == other.runtimeType &&
+          toolUseId == other.toolUseId &&
+          mapsEqual(content, other.content) &&
+          caller == other.caller &&
+          cacheControl == other.cacheControl;
+
+  @override
+  int get hashCode =>
+      Object.hash(toolUseId, mapHash(content), caller, cacheControl);
+
+  @override
+  String toString() =>
+      'WebSearchToolResultInputBlock(toolUseId: $toolUseId, '
+      'content: $content, caller: $caller, cacheControl: $cacheControl)';
+}
+
+/// Web fetch tool result block in input.
+@immutable
+class WebFetchToolResultInputBlock extends InputContentBlock {
+  /// The ID of the related tool use.
+  final String toolUseId;
+
+  /// The result content payload.
+  final Map<String, dynamic> content;
+
+  /// Caller metadata.
+  final ToolCaller? caller;
+
+  /// Cache control for this block.
+  final CacheControlEphemeral? cacheControl;
+
+  /// Creates a [WebFetchToolResultInputBlock].
+  const WebFetchToolResultInputBlock({
+    required this.toolUseId,
+    required this.content,
+    this.caller,
+    this.cacheControl,
+  });
+
+  /// Creates a [WebFetchToolResultInputBlock] from JSON.
+  factory WebFetchToolResultInputBlock.fromJson(Map<String, dynamic> json) {
+    return WebFetchToolResultInputBlock(
+      toolUseId: json['tool_use_id'] as String,
+      content: (json['content'] as Map).cast<String, dynamic>(),
+      caller: json['caller'] != null
+          ? ToolCaller.fromJson(json['caller'] as Map<String, dynamic>)
+          : null,
+      cacheControl: json['cache_control'] != null
+          ? CacheControlEphemeral.fromJson(
+              json['cache_control'] as Map<String, dynamic>,
+            )
+          : null,
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'type': 'web_fetch_tool_result',
+    'tool_use_id': toolUseId,
+    'content': content,
+    if (caller != null) 'caller': caller!.toJson(),
+    if (cacheControl != null) 'cache_control': cacheControl!.toJson(),
+  };
+
+  /// Creates a copy with replaced values.
+  WebFetchToolResultInputBlock copyWith({
+    String? toolUseId,
+    Map<String, dynamic>? content,
+    Object? caller = unsetCopyWithValue,
+    Object? cacheControl = unsetCopyWithValue,
+  }) {
+    return WebFetchToolResultInputBlock(
+      toolUseId: toolUseId ?? this.toolUseId,
+      content: content ?? this.content,
+      caller: caller == unsetCopyWithValue
+          ? this.caller
+          : caller as ToolCaller?,
+      cacheControl: cacheControl == unsetCopyWithValue
+          ? this.cacheControl
+          : cacheControl as CacheControlEphemeral?,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is WebFetchToolResultInputBlock &&
+          runtimeType == other.runtimeType &&
+          toolUseId == other.toolUseId &&
+          mapsEqual(content, other.content) &&
+          caller == other.caller &&
+          cacheControl == other.cacheControl;
+
+  @override
+  int get hashCode =>
+      Object.hash(toolUseId, mapHash(content), caller, cacheControl);
+
+  @override
+  String toString() =>
+      'WebFetchToolResultInputBlock(toolUseId: $toolUseId, '
+      'content: $content, caller: $caller, cacheControl: $cacheControl)';
+}
+
+/// Code execution tool result block in input.
+@immutable
+class CodeExecutionToolResultInputBlock extends InputContentBlock {
+  /// The ID of the related tool use.
+  final String toolUseId;
+
+  /// The result content payload.
+  final Map<String, dynamic> content;
+
+  /// Cache control for this block.
+  final CacheControlEphemeral? cacheControl;
+
+  /// Creates a [CodeExecutionToolResultInputBlock].
+  const CodeExecutionToolResultInputBlock({
+    required this.toolUseId,
+    required this.content,
+    this.cacheControl,
+  });
+
+  /// Creates a [CodeExecutionToolResultInputBlock] from JSON.
+  factory CodeExecutionToolResultInputBlock.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    return CodeExecutionToolResultInputBlock(
+      toolUseId: json['tool_use_id'] as String,
+      content: (json['content'] as Map).cast<String, dynamic>(),
+      cacheControl: json['cache_control'] != null
+          ? CacheControlEphemeral.fromJson(
+              json['cache_control'] as Map<String, dynamic>,
+            )
+          : null,
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'type': 'code_execution_tool_result',
+    'tool_use_id': toolUseId,
+    'content': content,
+    if (cacheControl != null) 'cache_control': cacheControl!.toJson(),
+  };
+
+  /// Creates a copy with replaced values.
+  CodeExecutionToolResultInputBlock copyWith({
+    String? toolUseId,
+    Map<String, dynamic>? content,
+    Object? cacheControl = unsetCopyWithValue,
+  }) {
+    return CodeExecutionToolResultInputBlock(
+      toolUseId: toolUseId ?? this.toolUseId,
+      content: content ?? this.content,
+      cacheControl: cacheControl == unsetCopyWithValue
+          ? this.cacheControl
+          : cacheControl as CacheControlEphemeral?,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CodeExecutionToolResultInputBlock &&
+          runtimeType == other.runtimeType &&
+          toolUseId == other.toolUseId &&
+          mapsEqual(content, other.content) &&
+          cacheControl == other.cacheControl;
+
+  @override
+  int get hashCode => Object.hash(toolUseId, mapHash(content), cacheControl);
+
+  @override
+  String toString() =>
+      'CodeExecutionToolResultInputBlock(toolUseId: $toolUseId, '
+      'content: $content, cacheControl: $cacheControl)';
+}
+
+/// Bash code execution tool result block in input.
+@immutable
+class BashCodeExecutionToolResultInputBlock extends InputContentBlock {
+  /// The ID of the related tool use.
+  final String toolUseId;
+
+  /// The result content payload.
+  final Map<String, dynamic> content;
+
+  /// Cache control for this block.
+  final CacheControlEphemeral? cacheControl;
+
+  /// Creates a [BashCodeExecutionToolResultInputBlock].
+  const BashCodeExecutionToolResultInputBlock({
+    required this.toolUseId,
+    required this.content,
+    this.cacheControl,
+  });
+
+  /// Creates a [BashCodeExecutionToolResultInputBlock] from JSON.
+  factory BashCodeExecutionToolResultInputBlock.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    return BashCodeExecutionToolResultInputBlock(
+      toolUseId: json['tool_use_id'] as String,
+      content: (json['content'] as Map).cast<String, dynamic>(),
+      cacheControl: json['cache_control'] != null
+          ? CacheControlEphemeral.fromJson(
+              json['cache_control'] as Map<String, dynamic>,
+            )
+          : null,
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'type': 'bash_code_execution_tool_result',
+    'tool_use_id': toolUseId,
+    'content': content,
+    if (cacheControl != null) 'cache_control': cacheControl!.toJson(),
+  };
+
+  /// Creates a copy with replaced values.
+  BashCodeExecutionToolResultInputBlock copyWith({
+    String? toolUseId,
+    Map<String, dynamic>? content,
+    Object? cacheControl = unsetCopyWithValue,
+  }) {
+    return BashCodeExecutionToolResultInputBlock(
+      toolUseId: toolUseId ?? this.toolUseId,
+      content: content ?? this.content,
+      cacheControl: cacheControl == unsetCopyWithValue
+          ? this.cacheControl
+          : cacheControl as CacheControlEphemeral?,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BashCodeExecutionToolResultInputBlock &&
+          runtimeType == other.runtimeType &&
+          toolUseId == other.toolUseId &&
+          mapsEqual(content, other.content) &&
+          cacheControl == other.cacheControl;
+
+  @override
+  int get hashCode => Object.hash(toolUseId, mapHash(content), cacheControl);
+
+  @override
+  String toString() =>
+      'BashCodeExecutionToolResultInputBlock(toolUseId: $toolUseId, '
+      'content: $content, cacheControl: $cacheControl)';
+}
+
+/// Text-editor code execution tool result block in input.
+@immutable
+class TextEditorCodeExecutionToolResultInputBlock extends InputContentBlock {
+  /// The ID of the related tool use.
+  final String toolUseId;
+
+  /// The result content payload.
+  final Map<String, dynamic> content;
+
+  /// Cache control for this block.
+  final CacheControlEphemeral? cacheControl;
+
+  /// Creates a [TextEditorCodeExecutionToolResultInputBlock].
+  const TextEditorCodeExecutionToolResultInputBlock({
+    required this.toolUseId,
+    required this.content,
+    this.cacheControl,
+  });
+
+  /// Creates a [TextEditorCodeExecutionToolResultInputBlock] from JSON.
+  factory TextEditorCodeExecutionToolResultInputBlock.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    return TextEditorCodeExecutionToolResultInputBlock(
+      toolUseId: json['tool_use_id'] as String,
+      content: (json['content'] as Map).cast<String, dynamic>(),
+      cacheControl: json['cache_control'] != null
+          ? CacheControlEphemeral.fromJson(
+              json['cache_control'] as Map<String, dynamic>,
+            )
+          : null,
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'type': 'text_editor_code_execution_tool_result',
+    'tool_use_id': toolUseId,
+    'content': content,
+    if (cacheControl != null) 'cache_control': cacheControl!.toJson(),
+  };
+
+  /// Creates a copy with replaced values.
+  TextEditorCodeExecutionToolResultInputBlock copyWith({
+    String? toolUseId,
+    Map<String, dynamic>? content,
+    Object? cacheControl = unsetCopyWithValue,
+  }) {
+    return TextEditorCodeExecutionToolResultInputBlock(
+      toolUseId: toolUseId ?? this.toolUseId,
+      content: content ?? this.content,
+      cacheControl: cacheControl == unsetCopyWithValue
+          ? this.cacheControl
+          : cacheControl as CacheControlEphemeral?,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is TextEditorCodeExecutionToolResultInputBlock &&
+          runtimeType == other.runtimeType &&
+          toolUseId == other.toolUseId &&
+          mapsEqual(content, other.content) &&
+          cacheControl == other.cacheControl;
+
+  @override
+  int get hashCode => Object.hash(toolUseId, mapHash(content), cacheControl);
+
+  @override
+  String toString() =>
+      'TextEditorCodeExecutionToolResultInputBlock(toolUseId: $toolUseId, '
+      'content: $content, cacheControl: $cacheControl)';
+}
+
+/// Tool-search tool result block in input.
+@immutable
+class ToolSearchToolResultInputBlock extends InputContentBlock {
+  /// The ID of the related tool use.
+  final String toolUseId;
+
+  /// The result content payload.
+  final Map<String, dynamic> content;
+
+  /// Cache control for this block.
+  final CacheControlEphemeral? cacheControl;
+
+  /// Creates a [ToolSearchToolResultInputBlock].
+  const ToolSearchToolResultInputBlock({
+    required this.toolUseId,
+    required this.content,
+    this.cacheControl,
+  });
+
+  /// Creates a [ToolSearchToolResultInputBlock] from JSON.
+  factory ToolSearchToolResultInputBlock.fromJson(Map<String, dynamic> json) {
+    return ToolSearchToolResultInputBlock(
+      toolUseId: json['tool_use_id'] as String,
+      content: (json['content'] as Map).cast<String, dynamic>(),
+      cacheControl: json['cache_control'] != null
+          ? CacheControlEphemeral.fromJson(
+              json['cache_control'] as Map<String, dynamic>,
+            )
+          : null,
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'type': 'tool_search_tool_result',
+    'tool_use_id': toolUseId,
+    'content': content,
+    if (cacheControl != null) 'cache_control': cacheControl!.toJson(),
+  };
+
+  /// Creates a copy with replaced values.
+  ToolSearchToolResultInputBlock copyWith({
+    String? toolUseId,
+    Map<String, dynamic>? content,
+    Object? cacheControl = unsetCopyWithValue,
+  }) {
+    return ToolSearchToolResultInputBlock(
+      toolUseId: toolUseId ?? this.toolUseId,
+      content: content ?? this.content,
+      cacheControl: cacheControl == unsetCopyWithValue
+          ? this.cacheControl
+          : cacheControl as CacheControlEphemeral?,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ToolSearchToolResultInputBlock &&
+          runtimeType == other.runtimeType &&
+          toolUseId == other.toolUseId &&
+          mapsEqual(content, other.content) &&
+          cacheControl == other.cacheControl;
+
+  @override
+  int get hashCode => Object.hash(toolUseId, mapHash(content), cacheControl);
+
+  @override
+  String toString() =>
+      'ToolSearchToolResultInputBlock(toolUseId: $toolUseId, '
+      'content: $content, cacheControl: $cacheControl)';
+}
+
+/// Container upload block in input.
+@immutable
+class ContainerUploadInputBlock extends InputContentBlock {
+  /// Uploaded file id.
+  final String fileId;
+
+  /// Cache control for this block.
+  final CacheControlEphemeral? cacheControl;
+
+  /// Creates a [ContainerUploadInputBlock].
+  const ContainerUploadInputBlock({required this.fileId, this.cacheControl});
+
+  /// Creates a [ContainerUploadInputBlock] from JSON.
+  factory ContainerUploadInputBlock.fromJson(Map<String, dynamic> json) {
+    return ContainerUploadInputBlock(
+      fileId: json['file_id'] as String,
+      cacheControl: json['cache_control'] != null
+          ? CacheControlEphemeral.fromJson(
+              json['cache_control'] as Map<String, dynamic>,
+            )
+          : null,
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'type': 'container_upload',
+    'file_id': fileId,
+    if (cacheControl != null) 'cache_control': cacheControl!.toJson(),
+  };
+
+  /// Creates a copy with replaced values.
+  ContainerUploadInputBlock copyWith({
+    String? fileId,
+    Object? cacheControl = unsetCopyWithValue,
+  }) {
+    return ContainerUploadInputBlock(
+      fileId: fileId ?? this.fileId,
+      cacheControl: cacheControl == unsetCopyWithValue
+          ? this.cacheControl
+          : cacheControl as CacheControlEphemeral?,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ContainerUploadInputBlock &&
+          runtimeType == other.runtimeType &&
+          fileId == other.fileId &&
+          cacheControl == other.cacheControl;
+
+  @override
+  int get hashCode => Object.hash(fileId, cacheControl);
+
+  @override
+  String toString() =>
+      'ContainerUploadInputBlock(fileId: $fileId, '
+      'cacheControl: $cacheControl)';
+}
+
+/// Compaction block in input (beta).
+///
+/// Round-trip this block from response to request to preserve compacted
+/// context across compaction boundaries.
+@immutable
+class CompactionInputBlock extends InputContentBlock {
+  /// Compaction summary content.
+  ///
+  /// When `null`, represents a failed compaction and is treated as a no-op.
+  final String? content;
+
+  /// Cache control for this block.
+  final CacheControlEphemeral? cacheControl;
+
+  /// Creates a [CompactionInputBlock].
+  const CompactionInputBlock({required this.content, this.cacheControl});
+
+  /// Creates a [CompactionInputBlock] from JSON.
+  factory CompactionInputBlock.fromJson(Map<String, dynamic> json) {
+    return CompactionInputBlock(
+      content: json['content'] as String?,
+      cacheControl: json['cache_control'] != null
+          ? CacheControlEphemeral.fromJson(
+              json['cache_control'] as Map<String, dynamic>,
+            )
+          : null,
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'type': 'compaction',
+    'content': content,
+    if (cacheControl != null) 'cache_control': cacheControl!.toJson(),
+  };
+
+  /// Creates a copy with replaced values.
+  CompactionInputBlock copyWith({
+    Object? content = unsetCopyWithValue,
+    Object? cacheControl = unsetCopyWithValue,
+  }) {
+    return CompactionInputBlock(
+      content: content == unsetCopyWithValue
+          ? this.content
+          : content as String?,
+      cacheControl: cacheControl == unsetCopyWithValue
+          ? this.cacheControl
+          : cacheControl as CacheControlEphemeral?,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CompactionInputBlock &&
+          runtimeType == other.runtimeType &&
+          content == other.content &&
+          cacheControl == other.cacheControl;
+
+  @override
+  int get hashCode => Object.hash(content, cacheControl);
+
+  @override
+  String toString() =>
+      'CompactionInputBlock(content: $content, cacheControl: $cacheControl)';
+}
+
+/// Tool reference block in input.
+@immutable
+class ToolReferenceInputBlock extends InputContentBlock {
+  /// Referenced tool name.
+  final String toolName;
+
+  /// Cache control for this block.
+  final CacheControlEphemeral? cacheControl;
+
+  /// Creates a [ToolReferenceInputBlock].
+  const ToolReferenceInputBlock({required this.toolName, this.cacheControl});
+
+  /// Creates a [ToolReferenceInputBlock] from JSON.
+  factory ToolReferenceInputBlock.fromJson(Map<String, dynamic> json) {
+    return ToolReferenceInputBlock(
+      toolName: json['tool_name'] as String,
+      cacheControl: json['cache_control'] != null
+          ? CacheControlEphemeral.fromJson(
+              json['cache_control'] as Map<String, dynamic>,
+            )
+          : null,
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'type': 'tool_reference',
+    'tool_name': toolName,
+    if (cacheControl != null) 'cache_control': cacheControl!.toJson(),
+  };
+
+  /// Creates a copy with replaced values.
+  ToolReferenceInputBlock copyWith({
+    String? toolName,
+    Object? cacheControl = unsetCopyWithValue,
+  }) {
+    return ToolReferenceInputBlock(
+      toolName: toolName ?? this.toolName,
+      cacheControl: cacheControl == unsetCopyWithValue
+          ? this.cacheControl
+          : cacheControl as CacheControlEphemeral?,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ToolReferenceInputBlock &&
+          runtimeType == other.runtimeType &&
+          toolName == other.toolName &&
+          cacheControl == other.cacheControl;
+
+  @override
+  int get hashCode => Object.hash(toolName, cacheControl);
+
+  @override
+  String toString() =>
+      'ToolReferenceInputBlock(toolName: $toolName, '
+      'cacheControl: $cacheControl)';
 }

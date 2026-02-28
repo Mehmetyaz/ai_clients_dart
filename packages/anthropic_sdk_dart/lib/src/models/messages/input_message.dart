@@ -1,5 +1,7 @@
 import 'package:meta/meta.dart';
 
+import '../common/equality.dart';
+
 import '../content/input_content_block.dart';
 import 'message_role.dart';
 
@@ -78,10 +80,10 @@ class BlocksMessageContent extends MessageContent {
       identical(this, other) ||
       other is BlocksMessageContent &&
           runtimeType == other.runtimeType &&
-          _listsEqual(blocks, other.blocks);
+          listsEqual(blocks, other.blocks);
 
   @override
-  int get hashCode => blocks.hashCode;
+  int get hashCode => listHash(blocks);
 
   @override
   String toString() => 'BlocksMessageContent(blocks: $blocks)';
@@ -123,6 +125,15 @@ class InputMessage {
         content: MessageContent.blocks(blocks),
       );
 
+  /// Returns the content as a list of [InputContentBlock]s.
+  ///
+  /// For [TextMessageContent], wraps the text in a single [TextInputBlock].
+  /// For [BlocksMessageContent], returns the blocks directly.
+  List<InputContentBlock> get blocks => switch (content) {
+    TextMessageContent(:final text) => [TextInputBlock(text)],
+    BlocksMessageContent(:final blocks) => blocks,
+  };
+
   /// Creates an [InputMessage] from JSON.
   factory InputMessage.fromJson(Map<String, dynamic> json) {
     return InputMessage(
@@ -158,14 +169,4 @@ class InputMessage {
 
   @override
   String toString() => 'InputMessage(role: $role, content: $content)';
-}
-
-bool _listsEqual<T>(List<T>? a, List<T>? b) {
-  if (a == null && b == null) return true;
-  if (a == null || b == null) return false;
-  if (a.length != b.length) return false;
-  for (var i = 0; i < a.length; i++) {
-    if (a[i] != b[i]) return false;
-  }
-  return true;
 }

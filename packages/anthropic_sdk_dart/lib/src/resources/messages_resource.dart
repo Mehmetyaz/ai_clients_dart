@@ -49,12 +49,14 @@ class MessagesResource extends ResourceBase with StreamingResource {
   Future<Message> create(
     MessageCreateRequest request, {
     Future<void>? abortTrigger,
+    List<String> betas = const [],
   }) async {
     final body = request.toJson()..remove('stream'); // Ensure non-streaming
 
     final response = await post(
       '/v1/messages',
       body: body,
+      headers: _betaHeaders(betas),
       abortTrigger: abortTrigger,
     );
 
@@ -69,6 +71,7 @@ class MessagesResource extends ResourceBase with StreamingResource {
   Stream<MessageStreamEvent> createStream(
     MessageCreateRequest request, {
     Future<void>? abortTrigger,
+    List<String> betas = const [],
   }) async* {
     final body = request.toJson();
     body['stream'] = true;
@@ -76,6 +79,7 @@ class MessagesResource extends ResourceBase with StreamingResource {
     final eventStream = postStream(
       '/v1/messages',
       body: body,
+      headers: _betaHeaders(betas),
       abortTrigger: abortTrigger,
     );
 
@@ -92,13 +96,23 @@ class MessagesResource extends ResourceBase with StreamingResource {
   Future<TokenCountResponse> countTokens(
     TokenCountRequest request, {
     Future<void>? abortTrigger,
+    List<String> betas = const [],
   }) async {
     final response = await post(
       '/v1/messages/count_tokens',
       body: request.toJson(),
+      headers: _betaHeaders(betas),
       abortTrigger: abortTrigger,
     );
 
     return TokenCountResponse.fromJson(response);
+  }
+
+  /// Builds the `anthropic-beta` header map from a list of beta feature names.
+  ///
+  /// Returns `null` if [betas] is empty, so that no extra header is sent.
+  static Map<String, String>? _betaHeaders(List<String> betas) {
+    if (betas.isEmpty) return null;
+    return {'anthropic-beta': betas.join(',')};
   }
 }
