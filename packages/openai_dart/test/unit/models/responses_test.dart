@@ -85,9 +85,46 @@ void main() {
       final result = switch (input) {
         ResponseInputText(:final text) => 'text: $text',
         ResponseInputItems(:final items) => 'items: ${items.length}',
+        ResponseInputRawJson(:final items) => 'raw: ${items.length}',
       };
 
       expect(result, equals('text: hello'));
+    });
+  });
+
+  group('ResponseInputRawJson', () {
+    test('creates from output items', () {
+      const input = ResponseInput.fromOutputItems([
+        {'type': 'message', 'id': 'msg_1', 'role': 'user', 'content': <dynamic>[]},
+      ]);
+
+      expect(input, isA<ResponseInputRawJson>());
+      expect((input as ResponseInputRawJson).items, hasLength(1));
+    });
+
+    test('toJson returns raw items list', () {
+      final items = [
+        {'type': 'compaction', 'id': 'cmp_1', 'encrypted_content': 'abc'},
+        {'type': 'message', 'id': 'msg_1', 'role': 'user', 'content': <dynamic>[]},
+      ];
+      final input = ResponseInputRawJson(items);
+
+      expect(input.toJson(), equals(items));
+    });
+
+    test('equality', () {
+      const a = ResponseInputRawJson([
+        {'type': 'compaction', 'id': 'cmp_1', 'encrypted_content': 'abc'},
+      ]);
+      const b = ResponseInputRawJson([
+        {'type': 'compaction', 'id': 'cmp_1', 'encrypted_content': 'abc'},
+      ]);
+      const c = ResponseInputRawJson([
+        {'type': 'message', 'id': 'msg_1', 'role': 'user', 'content': <dynamic>[]},
+      ]);
+
+      expect(a, equals(b));
+      expect(a, isNot(equals(c)));
     });
   });
 
@@ -262,6 +299,131 @@ void main() {
       expect(cleared.temperature, isNull);
       expect(cleared.metadata, isNull);
     });
+
+    test('serializes context_management entries', () {
+      const request = CreateResponseRequest(
+        model: 'gpt-4o',
+        input: ResponseInput.text('Hello!'),
+        contextManagement: [
+          ContextManagement.compaction(compactThreshold: 8000),
+        ],
+      );
+
+      final json = request.toJson();
+      final context = json['context_management'] as List<dynamic>;
+      final entry = context.first as Map<String, dynamic>;
+
+      expect(entry['type'], equals('compaction'));
+      expect(entry['compact_threshold'], equals(8000));
+    });
+
+    test('deserializes context_management entries', () {
+      final request = CreateResponseRequest.fromJson(const {
+        'model': 'gpt-4o',
+        'input': 'Hello!',
+        'context_management': [
+          {'type': 'compaction', 'compact_threshold': 5000},
+        ],
+      });
+
+      expect(request.contextManagement, isNotNull);
+      expect(request.contextManagement, hasLength(1));
+      expect(request.contextManagement!.first.type, equals('compaction'));
+      expect(request.contextManagement!.first.compactThreshold, equals(5000));
+    });
+  });
+
+  group('CompactResponseRequest', () {
+    test('serializes to JSON', () {
+      const request = CompactResponseRequest(
+        model: 'gpt-5.1-codex-max',
+        input: ResponseInput.text('Summarize this conversation'),
+        previousResponseId: 'resp_123',
+        instructions: 'Keep important decisions only.',
+      );
+
+      final json = request.toJson();
+
+      expect(json['model'], equals('gpt-5.1-codex-max'));
+      expect(json['input'], equals('Summarize this conversation'));
+      expect(json['previous_response_id'], equals('resp_123'));
+      expect(json['instructions'], equals('Keep important decisions only.'));
+    });
+
+    test('deserializes from JSON', () {
+      final request = CompactResponseRequest.fromJson(const {
+        'model': 'gpt-5.1-codex-max',
+        'input': 'Summarize this conversation',
+      });
+
+      expect(request.model, equals('gpt-5.1-codex-max'));
+      expect(request.input, isA<ResponseInputText>());
+    });
+  });
+
+  group('ResponseCompaction', () {
+    test('deserializes compact response payload', () {
+      final compaction = ResponseCompaction.fromJson(const {
+        'id': 'cmp_123',
+        'object': 'response.compaction',
+        'created_at': 1234567890,
+        'output': [
+          {
+            'type': 'compaction',
+            'id': 'cmp_item_1',
+            'encrypted_content': 'abc123',
+          },
+        ],
+        'usage': {
+          'input_tokens': 100,
+          'output_tokens': 10,
+          'total_tokens': 110,
+        },
+      });
+
+      expect(compaction.id, equals('cmp_123'));
+      expect(compaction.object, equals('response.compaction'));
+      expect(compaction.output.first, isA<CompactionOutputItem>());
+      expect(compaction.usage.totalTokens, equals(110));
+    });
+
+    test('toInput() produces ResponseInputRawJson from output items', () {
+      const compaction = ResponseCompaction(
+        id: 'cmp_123',
+        object: 'response.compaction',
+        output: [
+          CompactionOutputItem(id: 'cmp_1', encryptedContent: 'abc123'),
+          MessageOutputItem(
+            id: 'msg_1',
+            role: MessageRole.user,
+            content: [OutputContent.inputText('Hello')],
+          ),
+        ],
+        createdAt: 1234567890,
+        usage: ResponseUsage(
+          inputTokens: 100,
+          outputTokens: 10,
+          totalTokens: 110,
+        ),
+      );
+
+      final input = compaction.toInput();
+      expect(input, isA<ResponseInputRawJson>());
+
+      final json = input.toJson() as List;
+      expect(json, hasLength(2));
+
+      final first = json[0] as Map<String, dynamic>;
+      expect(first['type'], equals('compaction'));
+      expect(first['encrypted_content'], equals('abc123'));
+
+      final second = json[1] as Map<String, dynamic>;
+      expect(second['type'], equals('message'));
+      expect(second['role'], equals('user'));
+      final content = (second['content'] as List).first as Map<String, dynamic>;
+      expect(content['type'], equals('input_text'));
+      expect(content['text'], equals('Hello'));
+    });
   });
 
   group('Response', () {
@@ -371,6 +533,11 @@ void main() {
       expect(tool, isA<ImageGenerationTool>());
     });
 
+    test('creates shell tools', () {
+      expect(ResponseTool.shell(), isA<ShellTool>());
+      expect(ResponseTool.localShell(), isA<LocalShellTool>());
+    });
+
     test('deserializes function tool from JSON', () {
       final json = {
         'type': 'function',
@@ -394,6 +561,14 @@ void main() {
       final tool = ResponseTool.fromJson(json);
 
       expect(tool, isA<WebSearchTool>());
+    });
+
+    test('deserializes shell tools from JSON', () {
+      expect(ResponseTool.fromJson({'type': 'shell'}), isA<ShellTool>());
+      expect(
+        ResponseTool.fromJson({'type': 'local_shell'}),
+        isA<LocalShellTool>(),
+      );
     });
   });
 
@@ -627,6 +802,46 @@ void main() {
     });
   });
 
+  group('InputTextOutputContent', () {
+    test('creates via factory', () {
+      const content = OutputContent.inputText('User said hello');
+
+      expect(content, isA<InputTextOutputContent>());
+      expect((content as InputTextOutputContent).text, 'User said hello');
+    });
+
+    test('round-trips through JSON', () {
+      const content = InputTextOutputContent('Hello from user');
+      final json = content.toJson();
+
+      expect(json['type'], equals('input_text'));
+      expect(json['text'], equals('Hello from user'));
+
+      final restored = InputTextOutputContent.fromJson(json);
+      expect(restored, equals(content));
+    });
+
+    test('OutputContent.fromJson handles input_text type', () {
+      final content = OutputContent.fromJson({
+        'type': 'input_text',
+        'text': 'A user message',
+      });
+
+      expect(content, isA<InputTextOutputContent>());
+      expect((content as InputTextOutputContent).text, 'A user message');
+    });
+
+    test('equality', () {
+      const a = InputTextOutputContent('hello');
+      const b = InputTextOutputContent('hello');
+      const c = InputTextOutputContent('world');
+
+      expect(a, equals(b));
+      expect(a.hashCode, equals(b.hashCode));
+      expect(a, isNot(equals(c)));
+    });
+  });
+
   group('OutputContent', () {
     test('creates text content via factory', () {
       const content = OutputContent.text(text: 'Response text');
@@ -673,6 +888,17 @@ void main() {
   });
 
   group('OutputItem built-in tool types', () {
+    test('deserializes CompactionOutputItem', () {
+      final item = OutputItem.fromJson({
+        'type': 'compaction',
+        'id': 'cmp_123',
+        'encrypted_content': 'ciphertext',
+      });
+
+      expect(item, isA<CompactionOutputItem>());
+      expect((item as CompactionOutputItem).encryptedContent, 'ciphertext');
+    });
+
     test('deserializes WebSearchCallOutputItem', () {
       final json = {
         'type': 'web_search_call',
@@ -808,6 +1034,236 @@ void main() {
       expect(json['prompt'], equals('A dog'));
     });
 
+    test('deserializes LocalShellCallOutputItem with typed action', () {
+      final item = OutputItem.fromJson({
+        'type': 'local_shell_call',
+        'id': 'lsc_1',
+        'call_id': 'call_local_1',
+        'action': {
+          'type': 'exec',
+          'command': ['ls', '-la'],
+          'env': {'HOME': '/home/user'},
+          'timeout_ms': 30000,
+          'working_directory': '/tmp',
+          'user': 'root',
+        },
+        'status': 'completed',
+      });
+
+      expect(item, isA<LocalShellCallOutputItem>());
+      final shellItem = item as LocalShellCallOutputItem;
+      expect(shellItem.callId, equals('call_local_1'));
+      expect(shellItem.status, equals(ItemStatus.completed));
+      expect(shellItem.action.command, equals(['ls', '-la']));
+      expect(shellItem.action.env, equals({'HOME': '/home/user'}));
+      expect(shellItem.action.timeoutMs, equals(30000));
+      expect(shellItem.action.workingDirectory, equals('/tmp'));
+      expect(shellItem.action.user, equals('root'));
+    });
+
+    test('LocalShellExecAction round-trips through JSON', () {
+      const action = LocalShellExecAction(
+        command: ['echo', 'hello'],
+        env: {'PATH': '/usr/bin'},
+        timeoutMs: 5000,
+        workingDirectory: '/home',
+        user: 'testuser',
+      );
+
+      final json = action.toJson();
+      expect(json['type'], equals('exec'));
+      expect(json['command'], equals(['echo', 'hello']));
+      expect(json['env'], equals({'PATH': '/usr/bin'}));
+      expect(json['timeout_ms'], equals(5000));
+      expect(json['working_directory'], equals('/home'));
+      expect(json['user'], equals('testuser'));
+
+      final restored = LocalShellExecAction.fromJson(json);
+      expect(restored, equals(action));
+    });
+
+    test('LocalShellExecAction omits null optional fields', () {
+      const action = LocalShellExecAction(command: ['pwd']);
+      final json = action.toJson();
+
+      expect(json.containsKey('timeout_ms'), isFalse);
+      expect(json.containsKey('working_directory'), isFalse);
+      expect(json.containsKey('user'), isFalse);
+    });
+
+    test('LocalShellExecAction requires command and env fields', () {
+      // command and env are required per the OpenAI spec
+      expect(
+        () => LocalShellExecAction.fromJson(const {'type': 'exec'}),
+        throwsA(isA<TypeError>()),
+      );
+    });
+
+    test('deserializes ShellCallOutputItem', () {
+      final item = OutputItem.fromJson({
+        'type': 'shell_call',
+        'id': 'sh_1',
+        'call_id': 'call_shell_1',
+        'action': {
+          'commands': ['pwd'],
+          'timeout_ms': 5000,
+          'max_output_length': 1000,
+        },
+        'status': 'in_progress',
+      });
+
+      expect(item, isA<ShellCallOutputItem>());
+      final shellItem = item as ShellCallOutputItem;
+      expect(shellItem.action.commands, equals(['pwd']));
+      expect(shellItem.status, equals(ItemStatus.inProgress));
+      expect(shellItem.environment, isNull);
+    });
+
+    test('deserializes ShellCallOutputItem with local environment', () {
+      final item = OutputItem.fromJson({
+        'type': 'shell_call',
+        'id': 'sh_2',
+        'call_id': 'call_shell_2',
+        'action': {
+          'commands': ['ls'],
+        },
+        'status': 'completed',
+        'environment': {'type': 'local'},
+      });
+
+      expect(item, isA<ShellCallOutputItem>());
+      final shellItem = item as ShellCallOutputItem;
+      expect(shellItem.environment, isA<LocalShellEnvironment>());
+
+      // Round-trip
+      final json = shellItem.toJson();
+      expect(json['environment'], equals({'type': 'local'}));
+      final restored = OutputItem.fromJson(json) as ShellCallOutputItem;
+      expect(restored, equals(shellItem));
+    });
+
+    test(
+      'deserializes ShellCallOutputItem with container_reference environment',
+      () {
+        final item = OutputItem.fromJson({
+          'type': 'shell_call',
+          'id': 'sh_3',
+          'call_id': 'call_shell_3',
+          'action': {
+            'commands': ['echo', 'hello'],
+          },
+          'status': 'in_progress',
+          'environment': {
+            'type': 'container_reference',
+            'container_id': 'cntr_abc123',
+          },
+        });
+
+        expect(item, isA<ShellCallOutputItem>());
+        final shellItem = item as ShellCallOutputItem;
+        expect(shellItem.environment, isA<ContainerReferenceEnvironment>());
+        final env = shellItem.environment! as ContainerReferenceEnvironment;
+        expect(env.containerId, equals('cntr_abc123'));
+
+        // Round-trip
+        final json = shellItem.toJson();
+        expect(
+          json['environment'],
+          equals({
+            'type': 'container_reference',
+            'container_id': 'cntr_abc123',
+          }),
+        );
+        final restored = OutputItem.fromJson(json) as ShellCallOutputItem;
+        expect(restored, equals(shellItem));
+      },
+    );
+
+    test('ShellEnvironment.fromJson throws on unknown type', () {
+      expect(
+        () => ShellEnvironment.fromJson({'type': 'unknown'}),
+        throwsFormatException,
+      );
+    });
+
+    test('deserializes ShellCallOutputResultItem', () {
+      final item = OutputItem.fromJson({
+        'type': 'shell_call_output',
+        'id': 'sho_1',
+        'call_id': 'call_shell_1',
+        'status': 'completed',
+        'output': [
+          {
+            'stdout': 'hello',
+            'stderr': '',
+            'outcome': {'type': 'exit', 'exit_code': 0},
+          },
+        ],
+        'max_output_length': 2000,
+      });
+
+      expect(item, isA<ShellCallOutputResultItem>());
+      final shellOutput = item as ShellCallOutputResultItem;
+      expect(shellOutput.output, hasLength(1));
+      expect(shellOutput.output.first.outcome, isA<ShellCallExitOutcome>());
+      expect(shellOutput.status, equals(ItemStatus.completed));
+      expect(shellOutput.maxOutputLength, equals(2000));
+    });
+
+    test('deserializes LocalShellCallOutputResultItem', () {
+      final item = OutputItem.fromJson({
+        'type': 'local_shell_call_output',
+        'id': 'lso_1',
+        'call_id': 'call_local_1',
+        'output': '{"stdout":"ok"}',
+        'status': 'completed',
+      });
+
+      expect(item, isA<LocalShellCallOutputResultItem>());
+      final localOutput = item as LocalShellCallOutputResultItem;
+      expect(localOutput.callId, equals('call_local_1'));
+      expect(localOutput.output, equals('{"stdout":"ok"}'));
+      expect(localOutput.status, equals(ItemStatus.completed));
+    });
+
+    test('ShellCallAction.toJson omits null nullable fields', () {
+      const action = ShellCallAction(commands: ['pwd']);
+      final json = action.toJson();
+
+      expect(
+        json,
+        equals({
+          'commands': ['pwd'],
+        }),
+      );
+      expect(json.containsKey('timeout_ms'), isFalse);
+      expect(json.containsKey('max_output_length'), isFalse);
+    });
+
+    test('ShellCallAction.toJson includes non-null nullable fields', () {
+      const action = ShellCallAction(
+        commands: ['pwd'],
+        timeoutMs: 5000,
+        maxOutputLength: 1000,
+      );
+      final json = action.toJson();
+
+      expect(json['timeout_ms'], equals(5000));
+      expect(json['max_output_length'], equals(1000));
+    });
+
+    test('ShellCallOutputResultItem.toJson omits null maxOutputLength', () {
+      const item = ShellCallOutputResultItem(
+        id: 'sho_1',
+        callId: 'call_1',
+        output: [],
+        maxOutputLength: null,
+      );
+      final json = item.toJson();
+
+      expect(json.containsKey('max_output_length'), isFalse);
+    });
+
     test('deserializes McpCallOutputItem', () {
       final json = {
         'type': 'mcp_call',
@@ -908,6 +1364,53 @@ void main() {
 
       expect(response.codeInterpreterCalls.length, equals(1));
       expect(response.codeInterpreterCalls.first.code, equals('print(42)'));
+    });
+
+    test('shellCalls and compactionItems return matching items', () {
+      const response = Response(
+        id: 'resp_123',
+        object: 'response',
+        createdAt: 1234567890,
+        status: ResponseStatus.completed,
+        output: [
+          ShellCallOutputItem(
+            id: 'sh_1',
+            callId: 'call_1',
+            action: ShellCallAction(commands: ['pwd']),
+            status: ItemStatus.completed,
+          ),
+          CompactionOutputItem(id: 'cmp_1', encryptedContent: 'abc'),
+        ],
+      );
+
+      expect(response.shellCalls.length, equals(1));
+      expect(response.compactionItems.length, equals(1));
+    });
+
+    test('localShellCalls and localShellCallOutputs return matching items', () {
+      const response = Response(
+        id: 'resp_123',
+        object: 'response',
+        createdAt: 1234567890,
+        status: ResponseStatus.completed,
+        output: [
+          LocalShellCallOutputItem(
+            id: 'ls_1',
+            callId: 'call_1',
+            action: LocalShellExecAction(command: ['ls', '-la']),
+            status: ItemStatus.completed,
+          ),
+          LocalShellCallOutputResultItem(
+            id: 'lso_1',
+            callId: 'call_1',
+            output: '{"stdout":"ok"}',
+            status: ItemStatus.completed,
+          ),
+        ],
+      );
+
+      expect(response.localShellCalls.length, equals(1));
+      expect(response.localShellCallOutputs.length, equals(1));
     });
   });
 

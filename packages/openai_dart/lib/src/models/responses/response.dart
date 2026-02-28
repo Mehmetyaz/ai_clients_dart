@@ -203,6 +203,31 @@ class Response {
     return output.whereType<ImageGenerationCallOutputItem>().toList();
   }
 
+  /// Returns all shell call items from the output.
+  List<ShellCallOutputItem> get shellCalls {
+    return output.whereType<ShellCallOutputItem>().toList();
+  }
+
+  /// Returns all shell call output items from the output.
+  List<ShellCallOutputResultItem> get shellCallOutputs {
+    return output.whereType<ShellCallOutputResultItem>().toList();
+  }
+
+  /// Returns all local shell call items from the output.
+  List<LocalShellCallOutputItem> get localShellCalls {
+    return output.whereType<LocalShellCallOutputItem>().toList();
+  }
+
+  /// Returns all local shell call output items from the output.
+  List<LocalShellCallOutputResultItem> get localShellCallOutputs {
+    return output.whereType<LocalShellCallOutputResultItem>().toList();
+  }
+
+  /// Returns all compaction items from the output.
+  List<CompactionOutputItem> get compactionItems {
+    return output.whereType<CompactionOutputItem>().toList();
+  }
+
   /// Returns all MCP call items from the output.
   List<McpCallOutputItem> get mcpCalls {
     return output.whereType<McpCallOutputItem>().toList();
