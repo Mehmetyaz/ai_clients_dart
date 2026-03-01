@@ -79,6 +79,9 @@ void main() async {
 // Simple API key authentication
 final client = MistralClient.withApiKey('your-api-key');
 
+// From environment variables (reads MISTRAL_API_KEY and optional MISTRAL_BASE_URL)
+final client = MistralClient.fromEnvironment();
+
 // Custom base URL (for proxies or self-hosted)
 final client = MistralClient.withBaseUrl(
   apiKey: 'your-api-key',
@@ -702,7 +705,7 @@ try {
 } on AuthenticationException catch (e) {
   print('Auth failed: ${e.message}');
 } on ApiException catch (e) {
-  print('API error ${e.code}: ${e.message}');
+  print('API error ${e.statusCode}: ${e.message}');
 } on NetworkException catch (e) {
   print('Network error: ${e.message}');
 } on MistralException catch (e) {

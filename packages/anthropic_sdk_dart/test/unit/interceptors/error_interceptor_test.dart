@@ -47,11 +47,33 @@ void main() {
       await expectLater(
         interceptor.intercept(context, next),
         throwsA(
-          isA<AuthenticationException>().having(
-            (e) => e.message,
-            'message',
-            'Invalid API key',
-          ),
+          isA<AuthenticationException>()
+              .having((e) => e.message, 'message', 'Invalid API key')
+              .having((e) => e.statusCode, 'statusCode', 401),
+        ),
+      );
+    });
+
+    test('AuthenticationException is catchable as ApiException', () async {
+      final context = RequestContext(request: createRequest());
+
+      Future<http.Response> next(RequestContext ctx) async {
+        return http.Response(
+          jsonEncode({
+            'type': 'error',
+            'error': {
+              'type': 'authentication_error',
+              'message': 'Invalid API key',
+            },
+          }),
+          401,
+        );
+      }
+
+      await expectLater(
+        interceptor.intercept(context, next),
+        throwsA(
+          isA<ApiException>().having((e) => e.statusCode, 'statusCode', 401),
         ),
       );
     });
@@ -78,7 +100,7 @@ void main() {
         throwsA(
           isA<RateLimitException>()
               .having((e) => e.message, 'message', 'Too many requests')
-              .having((e) => e.code, 'code', 429)
+              .having((e) => e.statusCode, 'statusCode', 429)
               .having((e) => e.retryAfter, 'retryAfter', isNotNull),
         ),
       );
@@ -105,7 +127,7 @@ void main() {
         throwsA(
           isA<ApiException>()
               .having((e) => e.message, 'message', 'Invalid model specified')
-              .having((e) => e.code, 'code', 400),
+              .having((e) => e.statusCode, 'statusCode', 400),
         ),
       );
     });
@@ -128,7 +150,7 @@ void main() {
         throwsA(
           isA<ApiException>()
               .having((e) => e.message, 'message', 'Internal server error')
-              .having((e) => e.code, 'code', 500),
+              .having((e) => e.statusCode, 'statusCode', 500),
         ),
       );
     });

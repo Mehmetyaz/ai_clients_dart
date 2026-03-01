@@ -1,3 +1,8 @@
+@TestOn('vm')
+library;
+
+import 'dart:io';
+
 import 'package:anthropic_sdk_dart/anthropic_sdk_dart.dart';
 import 'package:http/http.dart' as http;
 import 'package:test/test.dart';
@@ -108,17 +113,49 @@ void main() {
       expect(client.close, returnsNormally);
     });
 
+    test('throws StateError when used after close', () async {
+      final client = AnthropicClient()..close();
+      await expectLater(
+        client.messages.create(
+          MessageCreateRequest(
+            model: 'claude-sonnet-4-20250514',
+            maxTokens: 100,
+            messages: [InputMessage.user('Hi')],
+          ),
+        ),
+        throwsA(isA<StateError>()),
+      );
+    });
+
+    test('does not close custom httpClient', () {
+      final httpClient = _SpyHttpClient();
+      // ignore: unused_local_variable
+      final client = AnthropicClient(httpClient: httpClient)..close();
+      expect(httpClient.closeCalled, isFalse);
+    });
+
     group('fromEnvironment', () {
-      test('creates client from environment', () {
-        // Note: This test relies on compile-time constants
-        // In actual use, environment variables would be set
-        final client = AnthropicClient.fromEnvironment();
-
-        expect(client, isNotNull);
-        expect(client.config, isNotNull);
-
-        client.close();
+      test('throws StateError when ANTHROPIC_API_KEY is not set', () {
+        if (Platform.environment['ANTHROPIC_API_KEY']?.isNotEmpty ?? false) {
+          markTestSkipped('ANTHROPIC_API_KEY is set');
+          return;
+        }
+        expect(AnthropicClient.fromEnvironment, throwsA(isA<StateError>()));
       });
     });
   });
+}
+
+class _SpyHttpClient extends http.BaseClient {
+  bool closeCalled = false;
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) {
+    throw UnimplementedError();
+  }
+
+  @override
+  void close() {
+    closeCalled = true;
+  }
 }

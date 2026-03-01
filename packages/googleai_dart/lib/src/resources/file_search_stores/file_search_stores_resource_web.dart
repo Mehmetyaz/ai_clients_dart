@@ -31,6 +31,7 @@ class FileSearchStoresResource extends ResourceBase {
     required super.httpClient,
     required super.interceptorChain,
     required super.requestBuilder,
+    super.ensureNotClosed,
   });
 
   /// Validates that the FileSearchStores API is only used with Google AI.
@@ -298,7 +299,7 @@ class FileSearchStoresResource extends ResourceBase {
     final uploadUrlHeader = initResponse.headers['x-goog-upload-url'];
     if (uploadUrlHeader == null) {
       throw const ApiException(
-        code: 500,
+        statusCode: 500,
         message: 'Upload URL not returned in initiation response',
       );
     }
@@ -425,6 +426,10 @@ class FileSearchStoresResource extends ResourceBase {
     }
 
     // Map to specific exception types
+    if (statusCode == 401) {
+      return AuthenticationException(message: message, details: details);
+    }
+
     if (statusCode == 429) {
       DateTime? retryAfter;
       final retryHeader = response.headers['retry-after'];
@@ -436,13 +441,17 @@ class FileSearchStoresResource extends ResourceBase {
       }
 
       return RateLimitException(
-        code: statusCode,
+        statusCode: statusCode,
         message: message,
         details: details,
         retryAfter: retryAfter,
       );
     }
 
-    return ApiException(code: statusCode, message: message, details: details);
+    return ApiException(
+      statusCode: statusCode,
+      message: message,
+      details: details,
+    );
   }
 }

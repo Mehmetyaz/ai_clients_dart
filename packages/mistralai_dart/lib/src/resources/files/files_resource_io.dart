@@ -21,6 +21,7 @@ class FilesResource extends ResourceBase {
     required super.httpClient,
     required super.interceptorChain,
     required super.requestBuilder,
+    super.ensureNotClosed,
   });
 
   /// Uploads a file for use in fine-tuning or batch jobs.
@@ -260,9 +261,9 @@ class FilesResource extends ResourceBase {
     }
 
     if (statusCode == 429) {
-      return RateLimitException(code: statusCode, message: message);
+      return RateLimitException(statusCode: statusCode, message: message);
     }
 
-    return ApiException(code: statusCode, message: message);
+    return ApiException(statusCode: statusCode, message: message);
   }
 }

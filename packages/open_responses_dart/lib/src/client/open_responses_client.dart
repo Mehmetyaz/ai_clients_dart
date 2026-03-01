@@ -1,8 +1,5 @@
-import 'dart:io';
-
 import 'package:http/http.dart' as http;
 
-import '../auth/auth_provider.dart';
 import '../interceptors/auth_interceptor.dart';
 import '../interceptors/error_interceptor.dart';
 import '../interceptors/interceptor.dart';
@@ -66,6 +63,9 @@ class OpenResponsesClient {
   /// Whether this client owns the HTTP client (and should close it).
   final bool _ownsHttpClient;
 
+  /// Whether the client has been closed.
+  bool _closed = false;
+
   /// Interceptor chain for request processing.
   late final InterceptorChain _chain;
 
@@ -88,19 +88,13 @@ class OpenResponsesClient {
 
   /// Creates an [OpenResponsesClient] from environment variables.
   ///
-  /// Reads `OPENAI_API_KEY` from environment.
+  /// Reads `OPENAI_API_KEY` from environment (optional).
   /// Optionally reads `OPENAI_BASE_URL` for custom API endpoints.
+  ///
+  /// Throws [UnsupportedError] on web platforms.
   factory OpenResponsesClient.fromEnvironment({http.Client? httpClient}) {
-    final apiKey = Platform.environment['OPENAI_API_KEY'];
-    final baseUrl = Platform.environment['OPENAI_BASE_URL'];
-
     return OpenResponsesClient(
-      config: OpenResponsesConfig(
-        authProvider: apiKey != null && apiKey.isNotEmpty
-            ? BearerTokenProvider(apiKey)
-            : null,
-        baseUrl: baseUrl ?? 'https://api.openai.com/v1',
-      ),
+      config: OpenResponsesConfig.fromEnvironment(),
       httpClient: httpClient,
     );
   }
@@ -132,6 +126,7 @@ class OpenResponsesClient {
       interceptors: interceptors,
       httpClient: _httpClient,
       retryWrapper: retryWrapper,
+      ensureNotClosed: _ensureNotClosed,
     );
 
     // Initialize resources
@@ -140,15 +135,30 @@ class OpenResponsesClient {
       requestBuilder: _requestBuilder,
       httpClient: _httpClient,
       authProvider: config.authProvider,
+      ensureNotClosed: _ensureNotClosed,
     );
   }
 
   /// Closes the client and releases resources.
   ///
-  /// After calling this method, the client should not be used.
+  /// After calling this method, any subsequent requests will throw
+  /// [StateError]. This method is idempotent and can be called multiple
+  /// times safely.
+  ///
+  /// If a custom [http.Client] was provided to the constructor,
+  /// it will not be closed by this method.
   void close() {
+    if (_closed) return;
+    _closed = true;
     if (_ownsHttpClient) {
       _httpClient.close();
+    }
+  }
+
+  /// Throws [StateError] if the client has been closed.
+  void _ensureNotClosed() {
+    if (_closed) {
+      throw StateError('Client has been closed');
     }
   }
 

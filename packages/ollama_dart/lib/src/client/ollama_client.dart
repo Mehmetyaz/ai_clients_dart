@@ -82,6 +82,9 @@ class OllamaClient {
   /// Whether we created the HTTP client internally.
   final bool _ownsHttpClient;
 
+  /// Whether the client has been closed.
+  bool _closed = false;
+
   /// Request builder.
   late final RequestBuilder _requestBuilder;
 
@@ -135,6 +138,7 @@ class OllamaClient {
       httpClient: _httpClient,
       interceptors: interceptors,
       retryWrapper: RetryWrapper(config: this.config),
+      ensureNotClosed: _ensureNotClosed,
     );
 
     // Initialize all API resources
@@ -143,6 +147,7 @@ class OllamaClient {
       httpClient: _httpClient,
       interceptorChain: _interceptorChain,
       requestBuilder: _requestBuilder,
+      ensureNotClosed: _ensureNotClosed,
     );
 
     chat = ChatResource(
@@ -150,6 +155,7 @@ class OllamaClient {
       httpClient: _httpClient,
       interceptorChain: _interceptorChain,
       requestBuilder: _requestBuilder,
+      ensureNotClosed: _ensureNotClosed,
     );
 
     embeddings = EmbeddingsResource(
@@ -157,6 +163,7 @@ class OllamaClient {
       httpClient: _httpClient,
       interceptorChain: _interceptorChain,
       requestBuilder: _requestBuilder,
+      ensureNotClosed: _ensureNotClosed,
     );
 
     models = ModelsResource(
@@ -164,6 +171,7 @@ class OllamaClient {
       httpClient: _httpClient,
       interceptorChain: _interceptorChain,
       requestBuilder: _requestBuilder,
+      ensureNotClosed: _ensureNotClosed,
     );
 
     version = VersionResource(
@@ -171,6 +179,7 @@ class OllamaClient {
       httpClient: _httpClient,
       interceptorChain: _interceptorChain,
       requestBuilder: _requestBuilder,
+      ensureNotClosed: _ensureNotClosed,
     );
   }
 
@@ -181,11 +190,37 @@ class OllamaClient {
     return OllamaClient(config: OllamaConfig(baseUrl: baseUrl));
   }
 
-  /// Closes the HTTP client and releases resources.
+  /// Creates an [OllamaClient] from environment variables.
   ///
-  /// Only closes the HTTP client if it was created internally.
-  /// If you passed a custom HTTP client, you're responsible for closing it.
+  /// Optionally reads `OLLAMA_HOST` for a custom base URL.
+  /// Defaults to `http://localhost:11434` if not set.
+  ///
+  /// Throws [UnsupportedError] on web platforms.
+  factory OllamaClient.fromEnvironment({http.Client? httpClient}) {
+    return OllamaClient(
+      config: OllamaConfig.fromEnvironment(),
+      httpClient: httpClient,
+    );
+  }
+
+  /// Throws a [StateError] if the client has been closed.
+  void _ensureNotClosed() {
+    if (_closed) {
+      throw StateError('Client has been closed');
+    }
+  }
+
+  /// Closes the client and releases resources.
+  ///
+  /// After calling this method, any subsequent requests will throw
+  /// [StateError]. This method is idempotent and can be called multiple
+  /// times safely.
+  ///
+  /// If a custom [http.Client] was provided to the constructor,
+  /// it will not be closed by this method.
   void close() {
+    if (_closed) return;
+    _closed = true;
     if (_ownsHttpClient) {
       _httpClient.close();
     }

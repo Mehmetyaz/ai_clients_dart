@@ -25,6 +25,7 @@ class ResponsesResource extends ResourceBase {
     required super.requestBuilder,
     required http.Client httpClient,
     AuthProvider? authProvider,
+    super.ensureNotClosed,
   }) : _httpClient = httpClient,
        _authProvider = authProvider;
 
@@ -57,6 +58,7 @@ class ResponsesResource extends ResourceBase {
     CreateResponseRequest request, {
     Future<void>? abortTrigger,
   }) async* {
+    ensureNotClosed?.call();
     // Ensure stream is true
     final requestToSend = request.stream != true
         ? request.copyWith(stream: true)
@@ -124,9 +126,9 @@ class ResponsesResource extends ResourceBase {
       case 401:
         return AuthenticationException(message: message);
       case 429:
-        return RateLimitException(code: statusCode, message: message);
+        return RateLimitException(statusCode: statusCode, message: message);
       default:
-        return ApiException(code: statusCode, message: message);
+        return ApiException(statusCode: statusCode, message: message);
     }
   }
 

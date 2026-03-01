@@ -10,7 +10,6 @@ import '../interceptors/auth_interceptor.dart';
 import '../interceptors/error_interceptor.dart';
 import '../interceptors/interceptor.dart';
 import '../interceptors/logging_interceptor.dart';
-import '../platform/environment.dart';
 import '../resources/audio_resource.dart';
 import '../resources/batches_resource.dart';
 import '../resources/beta_resource.dart';
@@ -89,7 +88,7 @@ import 'retry_wrapper.dart';
 ///   config: OpenAIConfig(
 ///     authProvider: ApiKeyProvider('sk-...'),
 ///     timeout: Duration(seconds: 60),
-///     maxRetries: 3,
+///     retryPolicy: RetryPolicy(maxRetries: 3),
 ///     logLevel: Level.INFO,
 ///   ),
 /// );
@@ -135,10 +134,8 @@ class OpenAIClient {
 
   /// Creates a new [OpenAIClient] using environment variables.
   ///
-  /// Reads `OPENAI_API_KEY` for authentication.
-  /// Optionally reads `OPENAI_BASE_URL`, `OPENAI_ORG_ID`, `OPENAI_PROJECT_ID`.
-  ///
-  /// Empty environment variable values are treated the same as unset.
+  /// Delegates to [OpenAIConfig.fromEnvironment] for configuration.
+  /// See that method for details on which environment variables are read.
   ///
   /// The optional [streamClientFactory] is used to create HTTP clients for
   /// streaming requests with abort support. This is primarily useful for
@@ -150,19 +147,8 @@ class OpenAIClient {
     http.Client? httpClient,
     http.Client Function()? streamClientFactory,
   }) {
-    final baseUrl = getEnvironmentVariable('OPENAI_BASE_URL');
-    final orgId = getEnvironmentVariable('OPENAI_ORG_ID');
-    final projectId = getEnvironmentVariable('OPENAI_PROJECT_ID');
-
     return OpenAIClient(
-      config: OpenAIConfig(
-        authProvider: ApiKeyProvider.fromEnvironment(),
-        organization: (orgId != null && orgId.isNotEmpty) ? orgId : null,
-        project: (projectId != null && projectId.isNotEmpty) ? projectId : null,
-        baseUrl: (baseUrl != null && baseUrl.isNotEmpty)
-            ? baseUrl
-            : 'https://api.openai.com/v1',
-      ),
+      config: OpenAIConfig.fromEnvironment(),
       httpClient: httpClient,
       streamClientFactory: streamClientFactory,
     );
@@ -244,7 +230,7 @@ class OpenAIClient {
     interceptors.add(const ErrorInterceptor());
 
     // Create retry wrapper
-    final retryWrapper = _config.maxRetries > 0
+    final retryWrapper = _config.retryPolicy.maxRetries > 0
         ? RetryWrapper(config: _config)
         : null;
 
@@ -254,6 +240,7 @@ class OpenAIClient {
       httpClient: _httpClient,
       retryWrapper: retryWrapper,
       timeout: _config.timeout,
+      ensureNotClosed: _ensureNotClosed,
     );
   }
 
@@ -1177,7 +1164,10 @@ class OpenAIClient {
 
   /// Closes the client and releases resources.
   ///
-  /// After calling this method, any subsequent requests will fail.
+  /// After calling this method, any subsequent requests will throw
+  /// [StateError]. This method is idempotent and can be called multiple
+  /// times safely.
+  ///
   /// If a custom [http.Client] was provided to the constructor,
   /// it will not be closed by this method.
   void close() {

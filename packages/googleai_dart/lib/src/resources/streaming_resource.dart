@@ -74,6 +74,8 @@ mixin StreamingResource on ResourceBase {
   Future<http.StreamedResponse> sendStreamingRequest(
     http.Request request,
   ) async {
+    ensureNotClosed?.call();
+
     http.StreamedResponse streamedResponse;
     try {
       streamedResponse = await httpClient.send(request);
@@ -307,6 +309,10 @@ mixin StreamingResource on ResourceBase {
       }
     }
 
+    if (statusCode == 401) {
+      return AuthenticationException(message: message, details: details);
+    }
+
     if (statusCode == 429) {
       DateTime? retryAfter;
       final retryHeader = response.headers['retry-after'];
@@ -318,14 +324,18 @@ mixin StreamingResource on ResourceBase {
       }
 
       return RateLimitException(
-        code: statusCode,
+        statusCode: statusCode,
         message: message,
         details: details,
         retryAfter: retryAfter,
       );
     }
 
-    return ApiException(code: statusCode, message: message, details: details);
+    return ApiException(
+      statusCode: statusCode,
+      message: message,
+      details: details,
+    );
   }
 
   /// Logs streaming errors.

@@ -1,9 +1,7 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
-import '../auth/auth_provider.dart';
 import '../interceptors/auth_interceptor.dart';
 import '../interceptors/error_interceptor.dart';
 import '../interceptors/logging_interceptor.dart';
@@ -82,6 +80,12 @@ class GoogleAIClient {
   /// HTTP client.
   final http.Client _httpClient;
 
+  /// Whether this client owns the HTTP client and should close it.
+  final bool _ownsHttpClient;
+
+  /// Whether this client has been closed.
+  bool _closed = false;
+
   /// Request builder.
   late final RequestBuilder _requestBuilder;
 
@@ -132,11 +136,15 @@ class GoogleAIClient {
 
   /// Creates a [GoogleAIClient].
   ///
-  /// Optionally accepts custom [config] for authentication and endpoint settings,
-  /// and a custom [httpClient] for testing or advanced use cases.
+  /// Optionally accepts custom [config] for authentication and endpoint settings.
+  ///
+  /// Optionally accepts a custom [httpClient] for testing or advanced use
+  /// cases. If not provided, a new client is created and will be closed when
+  /// [close] is called. If provided, you are responsible for closing it.
   GoogleAIClient({GoogleAIConfig? config, http.Client? httpClient})
     : config = config ?? const GoogleAIConfig(),
-      _httpClient = httpClient ?? http.Client() {
+      _httpClient = httpClient ?? http.Client(),
+      _ownsHttpClient = httpClient == null {
     _requestBuilder = RequestBuilder(config: this.config);
 
     // Interceptor order is Auth → Logging → Error
@@ -149,6 +157,7 @@ class GoogleAIClient {
         const ErrorInterceptor(),
       ],
       retryWrapper: RetryWrapper(config: this.config),
+      ensureNotClosed: _ensureNotClosed,
     );
 
     // Initialize all API resources
@@ -157,6 +166,7 @@ class GoogleAIClient {
       httpClient: _httpClient,
       interceptorChain: _interceptorChain,
       requestBuilder: _requestBuilder,
+      ensureNotClosed: _ensureNotClosed,
     );
 
     tunedModels = TunedModelsResource(
@@ -164,6 +174,7 @@ class GoogleAIClient {
       httpClient: _httpClient,
       interceptorChain: _interceptorChain,
       requestBuilder: _requestBuilder,
+      ensureNotClosed: _ensureNotClosed,
     );
 
     files = FilesResource(
@@ -171,6 +182,7 @@ class GoogleAIClient {
       httpClient: _httpClient,
       interceptorChain: _interceptorChain,
       requestBuilder: _requestBuilder,
+      ensureNotClosed: _ensureNotClosed,
     );
 
     generatedFiles = GeneratedFilesResource(
@@ -178,6 +190,7 @@ class GoogleAIClient {
       httpClient: _httpClient,
       interceptorChain: _interceptorChain,
       requestBuilder: _requestBuilder,
+      ensureNotClosed: _ensureNotClosed,
     );
 
     cachedContents = CachedContentsResource(
@@ -185,6 +198,7 @@ class GoogleAIClient {
       httpClient: _httpClient,
       interceptorChain: _interceptorChain,
       requestBuilder: _requestBuilder,
+      ensureNotClosed: _ensureNotClosed,
     );
 
     batches = BatchesResource(
@@ -192,6 +206,7 @@ class GoogleAIClient {
       httpClient: _httpClient,
       interceptorChain: _interceptorChain,
       requestBuilder: _requestBuilder,
+      ensureNotClosed: _ensureNotClosed,
     );
 
     corpora = CorporaResource(
@@ -199,6 +214,7 @@ class GoogleAIClient {
       httpClient: _httpClient,
       interceptorChain: _interceptorChain,
       requestBuilder: _requestBuilder,
+      ensureNotClosed: _ensureNotClosed,
     );
 
     fileSearchStores = FileSearchStoresResource(
@@ -206,6 +222,7 @@ class GoogleAIClient {
       httpClient: _httpClient,
       interceptorChain: _interceptorChain,
       requestBuilder: _requestBuilder,
+      ensureNotClosed: _ensureNotClosed,
     );
 
     interactions = InteractionsResource(
@@ -213,6 +230,7 @@ class GoogleAIClient {
       httpClient: _httpClient,
       interceptorChain: _interceptorChain,
       requestBuilder: _requestBuilder,
+      ensureNotClosed: _ensureNotClosed,
     );
 
     authTokens = AuthTokensResource(
@@ -220,6 +238,7 @@ class GoogleAIClient {
       httpClient: _httpClient,
       interceptorChain: _interceptorChain,
       requestBuilder: _requestBuilder,
+      ensureNotClosed: _ensureNotClosed,
     );
   }
 
@@ -228,6 +247,7 @@ class GoogleAIClient {
   /// By default, uses `GOOGLE_GENAI_API_KEY` (matching the official js-genai SDK).
   ///
   /// Throws a [StateError] if the environment variable is not set or empty.
+  /// Throws [UnsupportedError] on web platforms.
   ///
   /// Example:
   /// ```dart
@@ -244,16 +264,9 @@ class GoogleAIClient {
     RetryPolicy retryPolicy = RetryPolicy.defaultPolicy,
     http.Client? httpClient,
   }) {
-    final apiKey = Platform.environment[envVarName];
-    if (apiKey == null || apiKey.isEmpty) {
-      throw StateError(
-        'Environment variable $envVarName is not set. '
-        'Set it to your Google AI API key.',
-      );
-    }
     return GoogleAIClient(
-      config: GoogleAIConfig(
-        authProvider: ApiKeyProvider(apiKey),
+      config: GoogleAIConfig.fromEnvironment(
+        envVarName: envVarName,
         apiVersion: apiVersion,
         timeout: timeout,
         retryPolicy: retryPolicy,
@@ -274,6 +287,8 @@ class GoogleAIClient {
   ///
   /// Returns the [Operation] with its current status.
   Future<Operation> getOperation({required String name}) async {
+    _ensureNotClosed();
+
     final url = _requestBuilder.buildUrl('/v1beta/$name');
 
     final headers = _requestBuilder.buildHeaders();
@@ -322,13 +337,30 @@ class GoogleAIClient {
   /// await liveClient.close();
   /// ```
   LiveClient createLiveClient() {
+    _ensureNotClosed();
     return LiveClient(config: config);
   }
 
-  /// Closes the HTTP client and releases resources.
+  /// Throws a [StateError] if this client has been closed.
+  void _ensureNotClosed() {
+    if (_closed) {
+      throw StateError('Client has been closed');
+    }
+  }
+
+  /// Closes the client and releases resources.
   ///
-  /// Call this method when you're done using the client to free up resources.
+  /// After calling this method, any subsequent requests will throw
+  /// [StateError]. This method is idempotent and can be called multiple
+  /// times safely.
+  ///
+  /// If a custom [http.Client] was provided to the constructor,
+  /// it will not be closed by this method.
   void close() {
-    _httpClient.close();
+    if (_closed) return;
+    _closed = true;
+    if (_ownsHttpClient) {
+      _httpClient.close();
+    }
   }
 }

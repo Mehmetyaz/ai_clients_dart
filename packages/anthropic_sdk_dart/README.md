@@ -105,13 +105,7 @@ Unofficial Dart client for the **[Anthropic API](https://docs.anthropic.com/en/a
 import 'package:anthropic_sdk_dart/anthropic_sdk_dart.dart';
 
 void main() async {
-  final client = AnthropicClient(
-    config: const AnthropicConfig(
-      authProvider: ApiKeyProvider(
-        String.fromEnvironment('ANTHROPIC_API_KEY'),
-      ),
-    ),
-  );
+  final client = AnthropicClient.fromEnvironment();
 
   final response = await client.messages.create(
     MessageCreateRequest(
@@ -180,13 +174,7 @@ final client = AnthropicClient(
 ```dart
 import 'package:anthropic_sdk_dart/anthropic_sdk_dart.dart';
 
-final client = AnthropicClient(
-  config: const AnthropicConfig(
-    authProvider: ApiKeyProvider(
-      String.fromEnvironment('ANTHROPIC_API_KEY'),
-    ),
-  ),
-);
+final client = AnthropicClient.fromEnvironment();
 
 final response = await client.messages.create(
   MessageCreateRequest(
@@ -599,7 +587,7 @@ try {
 } on RateLimitException catch (e) {
   print('Rate limited - try again later: ${e.message}');
 } on ApiException catch (e) {
-  print('API error ${e.code}: ${e.message}');
+  print('API error ${e.statusCode}: ${e.message}');
 } on AnthropicException catch (e) {
   print('Anthropic error: ${e.message}');
 } catch (e) {
@@ -613,8 +601,9 @@ try {
   - `ApiException` - API errors with status codes
     - `AuthenticationException` - 401 errors
     - `RateLimitException` - 429 errors
-    - `OverloadedException` - 529 errors
-  - `AbortedException` - Request was cancelled
+  - `ValidationException` - Client-side validation errors
+  - `TimeoutException` - Request timeouts
+  - `AbortedException` - Request cancellation
 
 </details>
 
