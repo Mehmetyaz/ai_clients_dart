@@ -75,7 +75,6 @@ class ChromaClient {
 
   late final RequestBuilder _requestBuilder;
   late final InterceptorChain _interceptorChain;
-  late final RetryWrapper _retryWrapper;
 
   /// Resource for authentication endpoints.
   late final AuthResource auth;
@@ -157,6 +156,7 @@ class ChromaClient {
       baseUrl: config.baseUrl,
       defaultHeaders: {
         'Accept': 'application/json',
+        'Content-Type': 'application/json',
         'User-Agent': 'chromadb-dart',
         ...config.defaultHeaders, // User headers can override built-in
       },
@@ -169,17 +169,16 @@ class ChromaClient {
       const ErrorInterceptor(),
     ];
 
+    // Build retry wrapper if retries are enabled
+    final retryWrapper = config.retryPolicy.maxRetries > 0
+        ? RetryWrapper(config: config)
+        : null;
+
     _interceptorChain = InterceptorChain(
       interceptors: interceptors,
       httpClient: _httpClient,
-      requestBuilder: _requestBuilder,
+      retryWrapper: retryWrapper,
       ensureNotClosed: _ensureNotClosed,
-    );
-
-    // Build retry wrapper
-    _retryWrapper = RetryWrapper(
-      chain: _interceptorChain,
-      policy: config.retryPolicy,
     );
 
     // Initialize resources
@@ -188,7 +187,6 @@ class ChromaClient {
       httpClient: _httpClient,
       interceptorChain: _interceptorChain,
       requestBuilder: _requestBuilder,
-      retryWrapper: _retryWrapper,
       ensureNotClosed: _ensureNotClosed,
     );
 
@@ -197,7 +195,6 @@ class ChromaClient {
       httpClient: _httpClient,
       interceptorChain: _interceptorChain,
       requestBuilder: _requestBuilder,
-      retryWrapper: _retryWrapper,
       ensureNotClosed: _ensureNotClosed,
     );
 
@@ -206,7 +203,6 @@ class ChromaClient {
       httpClient: _httpClient,
       interceptorChain: _interceptorChain,
       requestBuilder: _requestBuilder,
-      retryWrapper: _retryWrapper,
       ensureNotClosed: _ensureNotClosed,
     );
 
@@ -215,7 +211,6 @@ class ChromaClient {
       httpClient: _httpClient,
       interceptorChain: _interceptorChain,
       requestBuilder: _requestBuilder,
-      retryWrapper: _retryWrapper,
       ensureNotClosed: _ensureNotClosed,
     );
 
@@ -224,7 +219,6 @@ class ChromaClient {
       httpClient: _httpClient,
       interceptorChain: _interceptorChain,
       requestBuilder: _requestBuilder,
-      retryWrapper: _retryWrapper,
       ensureNotClosed: _ensureNotClosed,
     );
   }
@@ -256,7 +250,6 @@ class ChromaClient {
       httpClient: _httpClient,
       interceptorChain: _interceptorChain,
       requestBuilder: _requestBuilder,
-      retryWrapper: _retryWrapper,
       ensureNotClosed: _ensureNotClosed,
     );
   }
@@ -292,7 +285,6 @@ class ChromaClient {
       httpClient: _httpClient,
       interceptorChain: _interceptorChain,
       requestBuilder: _requestBuilder,
-      retryWrapper: _retryWrapper,
       ensureNotClosed: _ensureNotClosed,
     );
   }

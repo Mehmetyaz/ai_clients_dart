@@ -61,12 +61,13 @@ class ErrorInterceptor implements Interceptor {
     }
 
     final requestMeta = RequestMetadata(
-      method: context.method,
-      url: context.fullUrl ?? Uri.parse(context.path),
-      headers: _redactHeaders(context.headers),
-      correlationId: context.headers['X-Request-ID'] ?? 'unknown',
-      timestamp: context.timestamp,
-      attemptNumber: context.attemptNumber,
+      method: context.request.method,
+      url: context.request.url,
+      headers: _redactHeaders(
+        Map<String, String>.from(context.request.headers),
+      ),
+      correlationId: context.request.headers['X-Request-ID'] ?? 'unknown',
+      timestamp: context.metadata['timestamp'] as DateTime? ?? DateTime.now(),
     );
 
     final responseMeta = ResponseMetadata(
