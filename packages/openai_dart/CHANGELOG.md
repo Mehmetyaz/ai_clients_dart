@@ -94,6 +94,17 @@
 
 See **[MIGRATION.md](MIGRATION.md)** for step-by-step examples and mapping tables.
 
+### Commits
+
+- **BREAKING** **FEAT**: Complete v1.0.0 reimplementation ([#24](https://github.com/davidmigloz/ai_clients_dart/issues/24)). ([ed68e31b](https://github.com/davidmigloz/ai_clients_dart/commit/ed68e31b06b8084fe86e29936457e11e8c770f88))
+- **BREAKING** **FEAT**: Add type-safe ResponseInput and convenience factories ([#29](https://github.com/davidmigloz/ai_clients_dart/issues/29)). ([015307ea](https://github.com/davidmigloz/ai_clients_dart/commit/015307ea73081751c85c421af5f524f4e7a699ff))
+- **BREAKING** **FIX**: Make created and ownedBy nullable for provider compatibility ([#30](https://github.com/davidmigloz/ai_clients_dart/issues/30)). ([5c56f005](https://github.com/davidmigloz/ai_clients_dart/commit/5c56f0059b72a680427abf9b0c5492b683568ee1))
+- **FEAT**: Add Skills API, response compaction, JSON image editing, and batch endpoints ([#34](https://github.com/davidmigloz/ai_clients_dart/issues/34)). ([98128ade](https://github.com/davidmigloz/ai_clients_dart/commit/98128ade066a2e30d3356eea4ce0d6e95c75f505))
+- **FIX**: Pre-release documentation and code fixes ([#41](https://github.com/davidmigloz/ai_clients_dart/issues/41)). ([5616f8f3](https://github.com/davidmigloz/ai_clients_dart/commit/5616f8f3ead70f57031c66580ebb619861bc2d1f))
+- **REFACTOR**: Align client package architecture across SDK packages ([#37](https://github.com/davidmigloz/ai_clients_dart/issues/37)). ([cf741ee1](https://github.com/davidmigloz/ai_clients_dart/commit/cf741ee12ac45667b86fe166b33dad37d85962b2))
+- **REFACTOR**: Align API surface across all SDK packages ([#36](https://github.com/davidmigloz/ai_clients_dart/issues/36)). ([ed969cc7](https://github.com/davidmigloz/ai_clients_dart/commit/ed969cc7ad964da60702f2c97c14851ebe9aa992))
+- **DOCS**: Refactors repository URLs to new location. ([76835268](https://github.com/davidmigloz/ai_clients_dart/commit/768352686cdc91529fd7d37a288d69a28cc825f9))
+
 ## 0.6.2
 
 - **FEAT**: Fix formatting issues ([#922](https://github.com/davidmigloz/langchain_dart/issues/922)). ([62bca9da](https://github.com/davidmigloz/langchain_dart/commit/62bca9da1abc4a64267c2d3085ad969cad33f4d6))
