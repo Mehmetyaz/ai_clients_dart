@@ -19,6 +19,10 @@ sealed class Part {
 
   /// Creates a text part.
   ///
+  /// Note: This factory does not include `thought` or `thoughtSignature`.
+  /// When echoing model responses back, use the already-parsed [TextPart]
+  /// objects rather than reconstructing via this factory.
+  ///
   /// Example:
   /// ```dart
   /// final part = Part.text('Hello, world!');
@@ -47,6 +51,10 @@ sealed class Part {
 
   /// Creates a function call part.
   ///
+  /// Note: This factory does not include `thoughtSignature`. When echoing
+  /// model responses back, use the already-parsed [FunctionCallPart] objects
+  /// rather than reconstructing via this factory.
+  ///
   /// Example:
   /// ```dart
   /// final part = Part.functionCall('get_weather', args: {'city': 'SF'});
@@ -70,8 +78,17 @@ sealed class Part {
 
   /// Creates a [Part] from JSON.
   factory Part.fromJson(Map<String, dynamic> json) {
+    // `text` must be checked before the standalone `thought` and
+    // `thoughtSignature` keys (below), because a JSON object can contain
+    // all three — the thought/signature belong to the text part in that case.
     if (json.containsKey('text')) {
-      return TextPart(json['text'] as String);
+      return TextPart(
+        json['text'] as String,
+        thought: json['thought'] as bool?,
+        thoughtSignature: json['thoughtSignature'] != null
+            ? base64Decode(json['thoughtSignature'] as String)
+            : null,
+      );
     }
     if (json.containsKey('inlineData')) {
       return InlineDataPart(
@@ -93,9 +110,15 @@ sealed class Part {
             : null,
       );
     }
+    // `functionCall` must be checked before the standalone `thoughtSignature`
+    // key (below), because a JSON object can contain both keys — the signature
+    // belongs to the function call in that case.
     if (json.containsKey('functionCall')) {
       return FunctionCallPart(
         FunctionCall.fromJson(json['functionCall'] as Map<String, dynamic>),
+        thoughtSignature: json['thoughtSignature'] != null
+            ? base64Decode(json['thoughtSignature'] as String)
+            : null,
       );
     }
     if (json.containsKey('functionResponse')) {
@@ -122,8 +145,16 @@ sealed class Part {
         VideoMetadata.fromJson(json['videoMetadata'] as Map<String, dynamic>),
       );
     }
+    // `thought` must be checked before the standalone `thoughtSignature` key
+    // (below), because a JSON object can contain both — the signature belongs
+    // to the thought part in that case.
     if (json.containsKey('thought')) {
-      return ThoughtPart(thought: json['thought'] as bool);
+      return ThoughtPart(
+        thought: json['thought'] as bool,
+        thoughtSignature: json['thoughtSignature'] != null
+            ? base64Decode(json['thoughtSignature'] as String)
+            : null,
+      );
     }
     if (json.containsKey('thoughtSignature')) {
       return ThoughtSignaturePart(
@@ -145,15 +176,43 @@ class TextPart extends Part {
   /// Plain text content.
   final String text;
 
+  /// Whether this text is a thought/reasoning step.
+  ///
+  /// The Gemini API returns reasoning text as
+  /// `{"text": "...", "thought": true}`. When `true`, this part contains
+  /// model reasoning rather than final output.
+  final bool? thought;
+
+  /// Optional opaque thought signature bytes.
+  ///
+  /// The API may return this alongside thought text; it must be preserved
+  /// and sent back unchanged when echoing the conversation history.
+  final List<int>? thoughtSignature;
+
   /// Creates a [TextPart].
-  const TextPart(this.text);
+  const TextPart(this.text, {this.thought, this.thoughtSignature});
 
   @override
-  Map<String, dynamic> toJson() => {'text': text};
+  Map<String, dynamic> toJson() => {
+    'text': text,
+    if (thought != null) 'thought': thought,
+    if (thoughtSignature != null)
+      'thoughtSignature': base64Encode(thoughtSignature!),
+  };
 
   /// Creates a copy with replaced values.
-  TextPart copyWith({Object? text = unsetCopyWithValue}) {
-    return TextPart(text == unsetCopyWithValue ? this.text : text! as String);
+  TextPart copyWith({
+    Object? text = unsetCopyWithValue,
+    Object? thought = unsetCopyWithValue,
+    Object? thoughtSignature = unsetCopyWithValue,
+  }) {
+    return TextPart(
+      text == unsetCopyWithValue ? this.text : text! as String,
+      thought: thought == unsetCopyWithValue ? this.thought : thought as bool?,
+      thoughtSignature: thoughtSignature == unsetCopyWithValue
+          ? this.thoughtSignature
+          : thoughtSignature as List<int>?,
+    );
   }
 }
 
@@ -224,18 +283,36 @@ class FunctionCallPart extends Part {
   /// Function call.
   final FunctionCall functionCall;
 
+  /// Optional opaque thought signature bytes.
+  ///
+  /// Required by new Gemini models when echoing function calls
+  /// back in the chat history. The API returns this as a base64-encoded
+  /// string alongside the function call; it must be preserved and sent
+  /// back unchanged.
+  final List<int>? thoughtSignature;
+
   /// Creates a [FunctionCallPart].
-  const FunctionCallPart(this.functionCall);
+  const FunctionCallPart(this.functionCall, {this.thoughtSignature});
 
   @override
-  Map<String, dynamic> toJson() => {'functionCall': functionCall.toJson()};
+  Map<String, dynamic> toJson() => {
+    'functionCall': functionCall.toJson(),
+    if (thoughtSignature != null)
+      'thoughtSignature': base64Encode(thoughtSignature!),
+  };
 
   /// Creates a copy with replaced values.
-  FunctionCallPart copyWith({Object? functionCall = unsetCopyWithValue}) {
+  FunctionCallPart copyWith({
+    Object? functionCall = unsetCopyWithValue,
+    Object? thoughtSignature = unsetCopyWithValue,
+  }) {
     return FunctionCallPart(
       functionCall == unsetCopyWithValue
           ? this.functionCall
           : functionCall! as FunctionCall,
+      thoughtSignature: thoughtSignature == unsetCopyWithValue
+          ? this.thoughtSignature
+          : thoughtSignature as List<int>?,
     );
   }
 }
@@ -337,16 +414,32 @@ class ThoughtPart extends Part {
   /// Whether this is a thought/reasoning step.
   final bool thought;
 
+  /// Optional opaque thought signature bytes.
+  ///
+  /// The API may return this alongside the thought flag; it must be preserved
+  /// and sent back unchanged when echoing the conversation history.
+  final List<int>? thoughtSignature;
+
   /// Creates a [ThoughtPart].
-  const ThoughtPart({required this.thought});
+  const ThoughtPart({required this.thought, this.thoughtSignature});
 
   @override
-  Map<String, dynamic> toJson() => {'thought': thought};
+  Map<String, dynamic> toJson() => {
+    'thought': thought,
+    if (thoughtSignature != null)
+      'thoughtSignature': base64Encode(thoughtSignature!),
+  };
 
   /// Creates a copy with replaced values.
-  ThoughtPart copyWith({Object? thought = unsetCopyWithValue}) {
+  ThoughtPart copyWith({
+    Object? thought = unsetCopyWithValue,
+    Object? thoughtSignature = unsetCopyWithValue,
+  }) {
     return ThoughtPart(
       thought: thought == unsetCopyWithValue ? this.thought : thought! as bool,
+      thoughtSignature: thoughtSignature == unsetCopyWithValue
+          ? this.thoughtSignature
+          : thoughtSignature as List<int>?,
     );
   }
 }
