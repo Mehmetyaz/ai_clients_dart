@@ -1,6 +1,8 @@
 ## 1.0.0
 
-**TL;DR**: Complete, type-safe Dart client for the Mistral AI API. Hand-crafted models (no code generation), resource-based API, interceptor-driven architecture, comprehensive error handling, and full API coverage including stable and beta endpoints.
+> Note: This release has breaking changes.
+
+**TL;DR**: Complete reimplementation with a new architecture, minimal dependencies, resource-based API, and improved developer experience. Hand-crafted models (no code generation), interceptor-driven architecture, comprehensive error handling, and full Mistral AI API coverage including stable and beta endpoints.
 
 ### What's new
 
@@ -51,6 +53,17 @@
   - Agents with built-in tools (web search, code interpreter, image generation).
   - Stateful conversations with context management.
   - Document libraries for RAG workflows.
+
+See **[MIGRATION.md](MIGRATION.md)** for step-by-step examples and mapping tables.
+
+### Commits
+
+- **BREAKING** **FEAT**: Complete v1.0.0 reimplementation ([#8](https://github.com/davidmigloz/ai_clients_dart/issues/8)). ([e18581e5](https://github.com/davidmigloz/ai_clients_dart/commit/e18581e574e42a97fe7139a8c9cf6c573c51b487))
+- **FEAT**: Update README and add classification/moderation examples ([#15](https://github.com/davidmigloz/ai_clients_dart/issues/15)). ([88b2064c](https://github.com/davidmigloz/ai_clients_dart/commit/88b2064c6002ad489ed7536d55a7ec8d659661c7))
+- **FIX**: Pre-release documentation and code fixes ([#44](https://github.com/davidmigloz/ai_clients_dart/issues/44)). ([93c78871](https://github.com/davidmigloz/ai_clients_dart/commit/93c78871a9826eb6f7c8146d643d46cbfee5bc9b))
+- **REFACTOR**: Align client package architecture across SDK packages ([#37](https://github.com/davidmigloz/ai_clients_dart/issues/37)). ([cf741ee1](https://github.com/davidmigloz/ai_clients_dart/commit/cf741ee12ac45667b86fe166b33dad37d85962b2))
+- **REFACTOR**: Align API surface across all SDK packages ([#36](https://github.com/davidmigloz/ai_clients_dart/issues/36)). ([ed969cc7](https://github.com/davidmigloz/ai_clients_dart/commit/ed969cc7ad964da60702f2c97c14851ebe9aa992))
+- **DOCS**: Refactors repository URLs to new location. ([76835268](https://github.com/davidmigloz/ai_clients_dart/commit/768352686cdc91529fd7d37a288d69a28cc825f9))
 
 ## 0.1.1+1
 

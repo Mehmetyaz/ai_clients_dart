@@ -1,3 +1,17 @@
+## 3.1.0
+
+Added thoughtSignature support for FunctionCallPart and ThoughtPart, pre-release Gemini 3.1 migration and documentation fixes, and various architecture alignments.
+
+- **FEAT**: Pre-release Gemini 3.1 migration and doc fixes ([#47](https://github.com/davidmigloz/ai_clients_dart/issues/47)). ([8fcfbd84](https://github.com/davidmigloz/ai_clients_dart/commit/8fcfbd840169491ffc44985f71d6e2fde4f1e9c4))
+- **FEAT**: Add thoughtSignature support to FunctionCallPart and ThoughtPart ([#39](https://github.com/davidmigloz/ai_clients_dart/issues/39)). ([cd2f5bdc](https://github.com/davidmigloz/ai_clients_dart/commit/cd2f5bdc2811780f1502a9746fecb0cc97cce220))
+- **FIX**: Fix linter issues. ([ad1e1f94](https://github.com/davidmigloz/ai_clients_dart/commit/ad1e1f9441fbc9a9b3b89ee92a2e3800d8f0dc4f))
+- **REFACTOR**: Align client package architecture across SDK packages ([#37](https://github.com/davidmigloz/ai_clients_dart/issues/37)). ([cf741ee1](https://github.com/davidmigloz/ai_clients_dart/commit/cf741ee12ac45667b86fe166b33dad37d85962b2))
+- **REFACTOR**: Align API surface across all SDK packages ([#36](https://github.com/davidmigloz/ai_clients_dart/issues/36)). ([ed969cc7](https://github.com/davidmigloz/ai_clients_dart/commit/ed969cc7ad964da60702f2c97c14851ebe9aa992))
+- **REFACTOR**: Extract streaming helpers to StreamingResource mixin ([#2](https://github.com/davidmigloz/ai_clients_dart/issues/2)). ([0b6f0ed9](https://github.com/davidmigloz/ai_clients_dart/commit/0b6f0ed9cea3f2b9e4c06e9b0f494cb582646d0b))
+- **DOCS**: Add image generation documentation and example ([#25](https://github.com/davidmigloz/ai_clients_dart/issues/25)). ([21602051](https://github.com/davidmigloz/ai_clients_dart/commit/2160205187b734003266735bae632e860c6220dc))
+- **DOCS**: Add comprehensive examples ([#14](https://github.com/davidmigloz/ai_clients_dart/issues/14)). ([b3bade72](https://github.com/davidmigloz/ai_clients_dart/commit/b3bade723368c32b97caac500eb83d24987489ee))
+- **DOCS**: Refactors repository URLs to new location. ([76835268](https://github.com/davidmigloz/ai_clients_dart/commit/768352686cdc91529fd7d37a288d69a28cc825f9))
+
 ## 3.0.0
 
 > Note: This release has breaking changes.

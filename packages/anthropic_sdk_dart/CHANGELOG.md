@@ -73,6 +73,17 @@
 
 See **[MIGRATION.md](MIGRATION.md)** for step-by-step examples and mapping tables.
 
+### Commits
+
+- **BREAKING** **FEAT**: Complete v1.0.0 reimplementation ([#5](https://github.com/davidmigloz/ai_clients_dart/issues/5)). ([a0623960](https://github.com/davidmigloz/ai_clients_dart/commit/a06239605e279b2cf52f6002757de8062d427dc3))
+- **BREAKING** **FEAT**: Add typed ToolDefinition and SkillSource for improved type safety ([#19](https://github.com/davidmigloz/ai_clients_dart/issues/19)). ([48311502](https://github.com/davidmigloz/ai_clients_dart/commit/48311502cb5290e966ce0f00975726ff2c53d3b7))
+- **FEAT**: Add speed controls, new built-in tools, tool governance, and ToolCaller type ([#35](https://github.com/davidmigloz/ai_clients_dart/issues/35)). ([ad3c34c6](https://github.com/davidmigloz/ai_clients_dart/commit/ad3c34c61bb7a563354e1d8e9c13958e752323e6))
+- **FEAT**: Enhance models with documentation and add examples ([#13](https://github.com/davidmigloz/ai_clients_dart/issues/13)). ([bfd99bc6](https://github.com/davidmigloz/ai_clients_dart/commit/bfd99bc684a9e823b4cbb4d52d47cb53a5a6dce7))
+- **FIX**: Pre-release documentation and test fixes ([#42](https://github.com/davidmigloz/ai_clients_dart/issues/42)). ([2fb37b06](https://github.com/davidmigloz/ai_clients_dart/commit/2fb37b0635f609cbd8929efb57e22e20e7e91c98))
+- **REFACTOR**: Align client package architecture across SDK packages ([#37](https://github.com/davidmigloz/ai_clients_dart/issues/37)). ([cf741ee1](https://github.com/davidmigloz/ai_clients_dart/commit/cf741ee12ac45667b86fe166b33dad37d85962b2))
+- **REFACTOR**: Align API surface across all SDK packages ([#36](https://github.com/davidmigloz/ai_clients_dart/issues/36)). ([ed969cc7](https://github.com/davidmigloz/ai_clients_dart/commit/ed969cc7ad964da60702f2c97c14851ebe9aa992))
+- **DOCS**: Refactors repository URLs to new location. ([76835268](https://github.com/davidmigloz/ai_clients_dart/commit/768352686cdc91529fd7d37a288d69a28cc825f9))
+
 ## 0.3.1
 
 - **FIX**: Add signature_delta support to BlockDelta (fixes [#811](https://github.com/davidmigloz/langchain_dart/issues/811)) ([#878](https://github.com/davidmigloz/langchain_dart/issues/878)). ([1d281837](https://github.com/davidmigloz/langchain_dart/commit/1d281837f64ec8d5ce6cdf3d00bcdbdba6451ebe))

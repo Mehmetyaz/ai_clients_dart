@@ -49,6 +49,15 @@
 
 See **[MIGRATION.md](MIGRATION.md)** for step-by-step examples and mapping tables.
 
+### Commits
+
+- **BREAKING** **FEAT**: Complete v1.0.0 reimplementation ([#9](https://github.com/davidmigloz/ai_clients_dart/issues/9)). ([caae5d24](https://github.com/davidmigloz/ai_clients_dart/commit/caae5d24992e6a2cbc7f55b2231083793f1c625f))
+- **FEAT**: Add support for custom HTTP headers ([#20](https://github.com/davidmigloz/ai_clients_dart/issues/20)). ([c1cc81cd](https://github.com/davidmigloz/ai_clients_dart/commit/c1cc81cdd8b2e612cb4edc62fc494a777563f7d3))
+- **REFACTOR**: Align client package architecture across SDK packages ([#37](https://github.com/davidmigloz/ai_clients_dart/issues/37)). ([cf741ee1](https://github.com/davidmigloz/ai_clients_dart/commit/cf741ee12ac45667b86fe166b33dad37d85962b2))
+- **REFACTOR**: Align API surface across all SDK packages ([#36](https://github.com/davidmigloz/ai_clients_dart/issues/36)). ([ed969cc7](https://github.com/davidmigloz/ai_clients_dart/commit/ed969cc7ad964da60702f2c97c14851ebe9aa992))
+- **DOCS**: Pre-release documentation fixes ([#43](https://github.com/davidmigloz/ai_clients_dart/issues/43)). ([f16aab76](https://github.com/davidmigloz/ai_clients_dart/commit/f16aab76fcd31ef1a0ba5a036d22efecced29e07))
+- **DOCS**: Refactors repository URLs to new location. ([76835268](https://github.com/davidmigloz/ai_clients_dart/commit/768352686cdc91529fd7d37a288d69a28cc825f9))
+
 ## 0.3.0+1
 
 - **REFACTOR**: Fix pub format warnings ([#809](https://github.com/davidmigloz/langchain_dart/issues/809)). ([640cdefb](https://github.com/davidmigloz/langchain_dart/commit/640cdefbede9c0a0182fb6bb4005a20aa6f35635))

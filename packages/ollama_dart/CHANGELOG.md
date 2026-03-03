@@ -71,6 +71,16 @@
 
 See **[MIGRATION.md](MIGRATION.md)** for step-by-step examples and mapping tables.
 
+### Commits
+
+- **BREAKING** **FEAT**: Complete v1.0.0 reimplementation ([#1](https://github.com/davidmigloz/ai_clients_dart/issues/1)). ([0ff41032](https://github.com/davidmigloz/ai_clients_dart/commit/0ff410326a005f86cc32682d75ae8163cb0bbd2f))
+- **FEAT**: Add type-safe enums and sealed classes ([#22](https://github.com/davidmigloz/ai_clients_dart/issues/22)). ([73372581](https://github.com/davidmigloz/ai_clients_dart/commit/733725817cc7c7ce68de135af84e5e2d7f042e62))
+- **FIX**: Pre-release documentation and code fixes ([#45](https://github.com/davidmigloz/ai_clients_dart/issues/45)). ([b33ae6d5](https://github.com/davidmigloz/ai_clients_dart/commit/b33ae6d5239892e3c2aed4d457667919cccd7796))
+- **REFACTOR**: Align client package architecture across SDK packages ([#37](https://github.com/davidmigloz/ai_clients_dart/issues/37)). ([cf741ee1](https://github.com/davidmigloz/ai_clients_dart/commit/cf741ee12ac45667b86fe166b33dad37d85962b2))
+- **REFACTOR**: Align API surface across all SDK packages ([#36](https://github.com/davidmigloz/ai_clients_dart/issues/36)). ([ed969cc7](https://github.com/davidmigloz/ai_clients_dart/commit/ed969cc7ad964da60702f2c97c14851ebe9aa992))
+- **REFACTOR**: Extract streaming helpers to StreamingResource mixin ([#2](https://github.com/davidmigloz/ai_clients_dart/issues/2)). ([0b6f0ed9](https://github.com/davidmigloz/ai_clients_dart/commit/0b6f0ed9cea3f2b9e4c06e9b0f494cb582646d0b))
+- **DOCS**: Refactors repository URLs to new location. ([76835268](https://github.com/davidmigloz/ai_clients_dart/commit/768352686cdc91529fd7d37a288d69a28cc825f9))
+
 ## 0.3.0+1
 
 - **REFACTOR**: Fix pub format warnings ([#809](https://github.com/davidmigloz/langchain_dart/issues/809)). ([640cdefb](https://github.com/davidmigloz/langchain_dart/commit/640cdefbede9c0a0182fb6bb4005a20aa6f35635))
