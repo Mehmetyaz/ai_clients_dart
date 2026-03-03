@@ -1,6 +1,7 @@
 import 'package:meta/meta.dart';
 
 import '../common/copy_with_sentinel.dart';
+import '../metadata/stop_sequence.dart';
 
 /// Request for a fill-in-the-middle (FIM) completion.
 ///
@@ -49,8 +50,9 @@ class FimCompletionRequest {
 
   /// Stop sequences to stop generation.
   ///
-  /// Can be a single string or a list of strings.
-  final Object? stop;
+  /// Use [StopSequence.single] for a single stop string or
+  /// [StopSequence.multiple] for multiple stop strings.
+  final StopSequence? stop;
 
   /// Random seed for deterministic generation.
   final int? randomSeed;
@@ -80,7 +82,9 @@ class FimCompletionRequest {
         maxTokens: json['max_tokens'] as int?,
         minTokens: json['min_tokens'] as int?,
         stream: json['stream'] as bool?,
-        stop: json['stop'],
+        stop: json['stop'] != null
+            ? StopSequence.fromJson(json['stop'] as Object)
+            : null,
         randomSeed: json['random_seed'] as int?,
       );
 
@@ -94,7 +98,7 @@ class FimCompletionRequest {
     if (maxTokens != null) 'max_tokens': maxTokens,
     if (minTokens != null) 'min_tokens': minTokens,
     if (stream != null) 'stream': stream,
-    if (stop != null) 'stop': stop,
+    if (stop != null) 'stop': stop!.toJson(),
     if (randomSeed != null) 'random_seed': randomSeed,
   };
 
@@ -126,7 +130,7 @@ class FimCompletionRequest {
           ? this.minTokens
           : minTokens as int?,
       stream: stream == unsetCopyWithValue ? this.stream : stream as bool?,
-      stop: stop == unsetCopyWithValue ? this.stop : stop,
+      stop: stop == unsetCopyWithValue ? this.stop : stop as StopSequence?,
       randomSeed: randomSeed == unsetCopyWithValue
           ? this.randomSeed
           : randomSeed as int?,
