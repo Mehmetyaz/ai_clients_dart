@@ -12,6 +12,7 @@
 /packages/googleai_dart/         @davidmigloz
 /packages/mistralai_dart/        @davidmigloz
 /packages/ollama_dart/           @davidmigloz
+/packages/open_responses/        @davidmigloz
 /packages/openai_dart/           @davidmigloz
 /packages/openai_realtime_dart/  @davidmigloz
 /packages/tavily_dart/           @davidmigloz
