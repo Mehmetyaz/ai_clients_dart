@@ -272,7 +272,7 @@ class Response {
     object,
     createdAt,
     status,
-    output,
+    Object.hashAll(output),
     usage,
     error,
     incompleteDetails,
@@ -280,7 +280,7 @@ class Response {
     instructions,
     previousResponseId,
     serviceTier,
-    metadata,
+    mapHashCode(metadata),
     maxOutputTokens,
     temperature,
     topP,
@@ -353,7 +353,8 @@ class ResponseList {
           lastId == other.lastId;
 
   @override
-  int get hashCode => Object.hash(data, object, hasMore, firstId, lastId);
+  int get hashCode =>
+      Object.hash(Object.hashAll(data), object, hasMore, firstId, lastId);
 
   @override
   String toString() =>
