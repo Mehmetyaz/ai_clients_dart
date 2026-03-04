@@ -245,7 +245,7 @@ class LibraryDocumentList {
       other is LibraryDocumentList &&
           runtimeType == other.runtimeType &&
           object == other.object &&
-          listEquals(data, other.data) &&
+          listsEqual(data, other.data) &&
           total == other.total &&
           hasMore == other.hasMore;
 
@@ -287,10 +287,10 @@ class LibraryDocumentContent {
       other is LibraryDocumentContent &&
           runtimeType == other.runtimeType &&
           text == other.text &&
-          listEquals(signedUrls, other.signedUrls);
+          listsEqual(signedUrls, other.signedUrls);
 
   @override
-  int get hashCode => Object.hash(text, Object.hashAll(signedUrls ?? []));
+  int get hashCode => Object.hash(text, listHash(signedUrls));
 
   @override
   String toString() => 'LibraryDocumentContent(text: ${text.length} chars)';

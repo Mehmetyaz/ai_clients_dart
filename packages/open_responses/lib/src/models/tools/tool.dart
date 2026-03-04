@@ -74,7 +74,8 @@ class FunctionTool extends Tool {
           strict == other.strict;
 
   @override
-  int get hashCode => Object.hash(name, description, parameters, strict);
+  int get hashCode =>
+      Object.hash(name, description, mapHash(parameters), strict);
 
   @override
   String toString() =>
@@ -140,8 +141,12 @@ class McpTool extends Tool {
           requireApproval == other.requireApproval;
 
   @override
-  int get hashCode =>
-      Object.hash(serverLabel, serverUrl, allowedTools, requireApproval);
+  int get hashCode => Object.hash(
+    serverLabel,
+    serverUrl,
+    listHash(allowedTools),
+    requireApproval,
+  );
 
   @override
   String toString() =>

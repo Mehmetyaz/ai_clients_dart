@@ -135,13 +135,18 @@ class EmbeddingRequest {
   static bool _inputEquals(Object a, Object b) {
     if (identical(a, b)) return true;
     if (a is String && b is String) return a == b;
-    if (a is List && b is List) return listEquals(a, b);
+    if (a is List && b is List) return listsEqual(a, b);
     return false;
   }
 
   @override
-  int get hashCode =>
-      Object.hash(model, input, encodingFormat, outputDimension, outputDtype);
+  int get hashCode => Object.hash(
+    model,
+    input is List ? listHash(input as List) : input,
+    encodingFormat,
+    outputDimension,
+    outputDtype,
+  );
 
   @override
   String toString() =>
