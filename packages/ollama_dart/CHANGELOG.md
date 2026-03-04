@@ -1,3 +1,11 @@
+## 1.2.0
+
+Added `baseUrl` and `defaultHeaders` parameters to `withApiKey` constructors, fixed `hashCode` for list fields, and unified equality helpers.
+
+- **FEAT**: Add baseUrl and defaultHeaders to withApiKey constructors ([#57](https://github.com/davidmigloz/ai_clients_dart/issues/57)). ([f0dd0caa](https://github.com/davidmigloz/ai_clients_dart/commit/f0dd0caac1247e065e4add236d7a6dca38ceea56))
+- **FIX**: Use Object.hashAll() for list fields in hashCode ([#65](https://github.com/davidmigloz/ai_clients_dart/issues/65)). ([4b19abd9](https://github.com/davidmigloz/ai_clients_dart/commit/4b19abd99904d4409fd729a631ff510a02f2c3bc))
+- **REFACTOR**: Unify equality_helpers.dart across packages ([#67](https://github.com/davidmigloz/ai_clients_dart/issues/67)). ([ec2897f8](https://github.com/davidmigloz/ai_clients_dart/commit/ec2897f8e5b5370a78e8b95832fde503cfaa5dd7))
+
 ## 1.1.0
 
 Added `withApiKey` convenience constructor for simplified client initialization.

@@ -1,3 +1,13 @@
+## 1.1.0
+
+Added `baseUrl` and `defaultHeaders` parameters to `withApiKey` constructors, aligned Responses API models with the latest OpenAI spec, fixed null index handling in `ToolCallDelta.fromJson`, and improved `hashCode` for list fields.
+
+- **FEAT**: Add baseUrl and defaultHeaders to withApiKey constructors ([#57](https://github.com/davidmigloz/ai_clients_dart/issues/57)). ([f0dd0caa](https://github.com/davidmigloz/ai_clients_dart/commit/f0dd0caac1247e065e4add236d7a6dca38ceea56))
+- **FIX**: Align Responses API models with current OpenAI spec ([#59](https://github.com/davidmigloz/ai_clients_dart/issues/59)). ([a55a67b7](https://github.com/davidmigloz/ai_clients_dart/commit/a55a67b7d05e3db9defb495c2024025b33a72a57))
+- **FIX**: Handle null index in ToolCallDelta.fromJson ([#64](https://github.com/davidmigloz/ai_clients_dart/issues/64)). ([9b3df8a4](https://github.com/davidmigloz/ai_clients_dart/commit/9b3df8a453de6d574b72025e86787b0533d64581))
+- **FIX**: Use Object.hashAll() for list fields in hashCode ([#65](https://github.com/davidmigloz/ai_clients_dart/issues/65)). ([4b19abd9](https://github.com/davidmigloz/ai_clients_dart/commit/4b19abd99904d4409fd729a631ff510a02f2c3bc))
+- **REFACTOR**: Unify equality_helpers.dart across packages ([#67](https://github.com/davidmigloz/ai_clients_dart/issues/67)). ([ec2897f8](https://github.com/davidmigloz/ai_clients_dart/commit/ec2897f8e5b5370a78e8b95832fde503cfaa5dd7))
+
 ## 1.0.1
 
 Fixed Responses API model types to align with the latest OpenAI spec.

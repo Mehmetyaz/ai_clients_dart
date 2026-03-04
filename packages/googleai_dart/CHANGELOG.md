@@ -1,3 +1,9 @@
+## 3.3.0
+
+Added `baseUrl` and `defaultHeaders` parameters to `withApiKey` constructors for more flexible client initialization.
+
+- **FEAT**: Add baseUrl and defaultHeaders to withApiKey constructors ([#57](https://github.com/davidmigloz/ai_clients_dart/issues/57)). ([f0dd0caa](https://github.com/davidmigloz/ai_clients_dart/commit/f0dd0caac1247e065e4add236d7a6dca38ceea56))
+
 ## 3.2.0
 
 Added `withApiKey` convenience constructor for simplified client initialization.

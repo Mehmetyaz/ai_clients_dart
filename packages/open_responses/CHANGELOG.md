@@ -1,3 +1,10 @@
+## 0.1.2
+
+Added `baseUrl` and `defaultHeaders` parameters to `withApiKey` constructors and unified equality helpers across packages.
+
+- **FEAT**: Add baseUrl and defaultHeaders to withApiKey constructors ([#57](https://github.com/davidmigloz/ai_clients_dart/issues/57)). ([f0dd0caa](https://github.com/davidmigloz/ai_clients_dart/commit/f0dd0caac1247e065e4add236d7a6dca38ceea56))
+- **REFACTOR**: Unify equality_helpers.dart across packages ([#67](https://github.com/davidmigloz/ai_clients_dart/issues/67)). ([ec2897f8](https://github.com/davidmigloz/ai_clients_dart/commit/ec2897f8e5b5370a78e8b95832fde503cfaa5dd7))
+
 ## 0.1.1
 
 Added `withApiKey` convenience constructor for simplified client initialization.
