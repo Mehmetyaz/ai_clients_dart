@@ -1,3 +1,10 @@
+## 1.0.1
+
+Fixed Responses API model types to align with the latest OpenAI spec.
+
+- **FIX**: Align Responses API model types with OpenAI spec ([#54](https://github.com/davidmigloz/ai_clients_dart/issues/54)). ([c200a489](https://github.com/davidmigloz/ai_clients_dart/commit/c200a4891938d7b16f3393cc6ba28234bdf28722))
+- **CHORE**: Bump googleapis from 15.0.0 to 16.0.0 and Dart SDK to 3.9.0 ([#52](https://github.com/davidmigloz/ai_clients_dart/issues/52)). ([eae130b7](https://github.com/davidmigloz/ai_clients_dart/commit/eae130b785d38074e85d460eefa9210f4acdf215))
+
 ## 1.0.0
 
 > Note: This release has breaking changes.

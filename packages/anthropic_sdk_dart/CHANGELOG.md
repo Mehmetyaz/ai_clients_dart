@@ -1,3 +1,11 @@
+## 1.1.0
+
+Added `withApiKey` convenience constructors for simplified client initialization and convenience methods for common API patterns like single-message responses and streaming text.
+
+- **FEAT**: Add withApiKey convenience constructors ([#56](https://github.com/davidmigloz/ai_clients_dart/issues/56)). ([b06e3df3](https://github.com/davidmigloz/ai_clients_dart/commit/b06e3df31cea2228489525b68b7d0055f678fecc))
+- **FEAT**: Add convenience methods for common API patterns ([#55](https://github.com/davidmigloz/ai_clients_dart/issues/55)). ([68cb17d3](https://github.com/davidmigloz/ai_clients_dart/commit/68cb17d3ce642f5cca6b026eabff9f31f71e004b))
+- **CHORE**: Bump googleapis from 15.0.0 to 16.0.0 and Dart SDK to 3.9.0 ([#52](https://github.com/davidmigloz/ai_clients_dart/issues/52)). ([eae130b7](https://github.com/davidmigloz/ai_clients_dart/commit/eae130b785d38074e85d460eefa9210f4acdf215))
+
 ## 1.0.0
 
 > Note: This release has breaking changes.
