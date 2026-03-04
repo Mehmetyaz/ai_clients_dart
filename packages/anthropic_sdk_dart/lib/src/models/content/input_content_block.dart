@@ -6,6 +6,7 @@ import '../metadata/cache_control.dart';
 import '../sources/document_source.dart';
 import '../sources/image_source.dart';
 import '../tools/tool_caller.dart';
+import 'content_block.dart';
 
 /// Content block for input messages.
 ///
@@ -68,7 +69,7 @@ sealed class InputContentBlock {
   /// Creates a web search tool result block.
   factory InputContentBlock.webSearchToolResult({
     required String toolUseId,
-    required Map<String, dynamic> content,
+    required WebSearchResult content,
     ToolCaller? caller,
     CacheControlEphemeral? cacheControl,
   }) = WebSearchToolResultInputBlock;
@@ -708,8 +709,8 @@ class WebSearchToolResultInputBlock extends InputContentBlock {
   /// The ID of the related tool use.
   final String toolUseId;
 
-  /// The result content payload.
-  final Map<String, dynamic> content;
+  /// The search results content.
+  final WebSearchResult content;
 
   /// Caller metadata.
   final ToolCaller? caller;
@@ -729,7 +730,7 @@ class WebSearchToolResultInputBlock extends InputContentBlock {
   factory WebSearchToolResultInputBlock.fromJson(Map<String, dynamic> json) {
     return WebSearchToolResultInputBlock(
       toolUseId: json['tool_use_id'] as String,
-      content: (json['content'] as Map).cast<String, dynamic>(),
+      content: WebSearchResult.fromJson(json['content'] as Object),
       caller: json['caller'] != null
           ? ToolCaller.fromJson(json['caller'] as Map<String, dynamic>)
           : null,
@@ -745,7 +746,7 @@ class WebSearchToolResultInputBlock extends InputContentBlock {
   Map<String, dynamic> toJson() => {
     'type': 'web_search_tool_result',
     'tool_use_id': toolUseId,
-    'content': content,
+    'content': content.toJson(),
     if (caller != null) 'caller': caller!.toJson(),
     if (cacheControl != null) 'cache_control': cacheControl!.toJson(),
   };
@@ -753,7 +754,7 @@ class WebSearchToolResultInputBlock extends InputContentBlock {
   /// Creates a copy with replaced values.
   WebSearchToolResultInputBlock copyWith({
     String? toolUseId,
-    Map<String, dynamic>? content,
+    WebSearchResult? content,
     Object? caller = unsetCopyWithValue,
     Object? cacheControl = unsetCopyWithValue,
   }) {
@@ -775,13 +776,12 @@ class WebSearchToolResultInputBlock extends InputContentBlock {
       other is WebSearchToolResultInputBlock &&
           runtimeType == other.runtimeType &&
           toolUseId == other.toolUseId &&
-          mapsEqual(content, other.content) &&
+          content == other.content &&
           caller == other.caller &&
           cacheControl == other.cacheControl;
 
   @override
-  int get hashCode =>
-      Object.hash(toolUseId, mapHash(content), caller, cacheControl);
+  int get hashCode => Object.hash(toolUseId, content, caller, cacheControl);
 
   @override
   String toString() =>
