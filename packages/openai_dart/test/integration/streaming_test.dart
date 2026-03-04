@@ -2,6 +2,7 @@
 @Tags(['integration'])
 library;
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:openai_dart/openai_dart.dart';
@@ -208,6 +209,51 @@ void main() {
 
         // With toolChoice forcing function, should have tool calls
         expect(hasToolCall, isTrue);
+      },
+    );
+
+    test(
+      'stream tool calls with ChatStreamAccumulator',
+      timeout: const Timeout(Duration(minutes: 2)),
+      () async {
+        if (apiKey == null) {
+          markTestSkipped('API key not available');
+          return;
+        }
+
+        final stream = client!.chat.completions.createStream(
+          ChatCompletionCreateRequest(
+            model: 'gpt-4o-mini',
+            messages: [ChatMessage.user("What's the weather in Paris?")],
+            tools: [
+              Tool.function(
+                name: 'get_weather',
+                description: 'Get weather for a city',
+                parameters: const {
+                  'type': 'object',
+                  'properties': {
+                    'city': {'type': 'string'},
+                  },
+                  'required': <dynamic>['city'],
+                },
+              ),
+            ],
+            toolChoice: ToolChoice.function('get_weather'),
+            maxTokens: 100,
+          ),
+        );
+
+        final accumulator = ChatStreamAccumulator();
+        await stream.forEach(accumulator.add);
+        final completion = accumulator.toChatCompletion();
+
+        final toolCalls = completion.choices.first.message.toolCalls!;
+        expect(toolCalls, isNotEmpty);
+        expect(toolCalls.first.function.name, 'get_weather');
+        final args =
+            jsonDecode(toolCalls.first.function.arguments)
+                as Map<String, dynamic>;
+        expect(args['city'].toString().toLowerCase(), contains('paris'));
       },
     );
 
