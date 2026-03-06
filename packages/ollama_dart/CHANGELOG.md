@@ -1,3 +1,9 @@
+## 1.3.0
+
+Added missing fields to chat, completion, and model response models.
+
+- **FEAT**: Add missing fields to response models ([#80](https://github.com/davidmigloz/ai_clients_dart/issues/80)). ([73e44241](https://github.com/davidmigloz/ai_clients_dart/commit/73e442418dcf67b01324225ce826e285b4028c48))
+
 ## 1.2.1
 
 Internal improvements to build tooling and package publishing configuration.

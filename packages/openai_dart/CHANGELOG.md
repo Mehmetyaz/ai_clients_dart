@@ -1,3 +1,9 @@
+## 1.3.0
+
+Added missing `containerId` field to `CodeInterpreterCallOutputItem` and made `ContainerFile.bytes` nullable to match the API response.
+
+- **FIX**: Add missing containerId and fix ContainerFile.bytes crash ([#81](https://github.com/davidmigloz/ai_clients_dart/issues/81)). ([1dde0468](https://github.com/davidmigloz/ai_clients_dart/commit/1dde0468982ffae4c4d7ddbe9a5cc039cee267ad))
+
 ## 1.2.0
 
 Added support for GPT-5.4 and the new Responses API agent capabilities released alongside it — tool search (deferred tool loading at runtime), built-in computer use, and 1M-token context with message phases. Also added multi-modal moderation, fine-tune management methods, and missing `ChatCompletionCreateRequest` fields. Fixed handling of unknown streaming event types.
