@@ -1,6 +1,8 @@
 import 'package:openai_dart/src/models/conversations/conversations.dart';
 import 'package:openai_dart/src/models/responses/config/item_status.dart';
+import 'package:openai_dart/src/models/responses/config/tool_search_execution_type.dart';
 import 'package:openai_dart/src/models/responses/items/item.dart';
+import 'package:openai_dart/src/models/responses/tools/response_tool.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -690,6 +692,146 @@ void main() {
 
       expect(item1, equals(item2));
       expect(item1, isNot(equals(item3)));
+    });
+  });
+
+  group('ConversationToolSearchCallItem', () {
+    test('round-trip', () {
+      final json = {
+        'type': 'tool_search_call',
+        'id': 'tsc_1',
+        'call_id': 'call_1',
+        'execution': 'server',
+        'arguments': {'query': 'test'},
+        'status': 'completed',
+      };
+
+      final item = ConversationItem.fromJson(json);
+      expect(item, isA<ConversationToolSearchCallItem>());
+      final tsc = item as ConversationToolSearchCallItem;
+      expect(tsc.id, 'tsc_1');
+      expect(tsc.callId, 'call_1');
+      expect(tsc.execution, ToolSearchExecutionType.server);
+
+      final restored = ConversationItem.fromJson(tsc.toJson());
+      expect(restored, equals(tsc));
+    });
+
+    test('round-trip with null callId', () {
+      final json = {
+        'type': 'tool_search_call',
+        'id': 'tsc_2',
+        'execution': 'server',
+      };
+
+      final item = ConversationItem.fromJson(json);
+      expect(item, isA<ConversationToolSearchCallItem>());
+      final tsc = item as ConversationToolSearchCallItem;
+      expect(tsc.callId, isNull);
+
+      final restored = ConversationItem.fromJson(tsc.toJson());
+      expect(restored, equals(tsc));
+    });
+
+    test('equality is deep for arguments map', () {
+      final json = {
+        'type': 'tool_search_call',
+        'id': 'tsc_3',
+        'call_id': 'call_3',
+        'execution': 'client',
+        'arguments': {
+          'query': 'search',
+          'filters': {'lang': 'dart'},
+        },
+        'status': 'completed',
+      };
+      final a =
+          ConversationItem.fromJson(json) as ConversationToolSearchCallItem;
+      final b =
+          ConversationItem.fromJson(json) as ConversationToolSearchCallItem;
+      expect(a, equals(b));
+      expect(a.hashCode, equals(b.hashCode));
+    });
+  });
+
+  group('ConversationToolSearchOutputItem', () {
+    test('round-trip', () {
+      final json = {
+        'type': 'tool_search_output',
+        'id': 'tso_1',
+        'call_id': 'call_1',
+        'execution': 'client',
+        'tools': [
+          {'type': 'function', 'name': 'func1'},
+        ],
+        'status': 'completed',
+      };
+
+      final item = ConversationItem.fromJson(json);
+      expect(item, isA<ConversationToolSearchOutputItem>());
+      final tso = item as ConversationToolSearchOutputItem;
+      expect(tso.id, 'tso_1');
+      expect(tso.tools, hasLength(1));
+      expect(tso.tools!.first, isA<FunctionTool>());
+
+      final restored = ConversationItem.fromJson(tso.toJson());
+      expect(restored, equals(tso));
+    });
+
+    test('round-trip with null callId', () {
+      final json = {
+        'type': 'tool_search_output',
+        'id': 'tso_2',
+        'execution': 'client',
+        'tools': [
+          {'type': 'function', 'name': 'func1'},
+        ],
+      };
+
+      final item = ConversationItem.fromJson(json);
+      expect(item, isA<ConversationToolSearchOutputItem>());
+      final tso = item as ConversationToolSearchOutputItem;
+      expect(tso.callId, isNull);
+
+      final restored = ConversationItem.fromJson(tso.toJson());
+      expect(restored, equals(tso));
+    });
+
+    test('equality uses deep comparison of tools list', () {
+      final json = {
+        'type': 'tool_search_output',
+        'id': 'tso_3',
+        'call_id': 'call_3',
+        'execution': 'server',
+        'tools': [
+          {'type': 'function', 'name': 'func1'},
+        ],
+        'status': 'completed',
+      };
+      final a =
+          ConversationItem.fromJson(json) as ConversationToolSearchOutputItem;
+      final b =
+          ConversationItem.fromJson(json) as ConversationToolSearchOutputItem;
+      expect(a, equals(b));
+      expect(a.hashCode, equals(b.hashCode));
+    });
+
+    test('instances with different tools are not equal', () {
+      const a = ConversationToolSearchOutputItem(
+        id: 'tso_4',
+        callId: 'call_4',
+        execution: ToolSearchExecutionType.server,
+        tools: [FunctionTool(name: 'func1')],
+        status: ItemStatus.completed,
+      );
+      const b = ConversationToolSearchOutputItem(
+        id: 'tso_4',
+        callId: 'call_4',
+        execution: ToolSearchExecutionType.server,
+        tools: [FunctionTool(name: 'func2')],
+        status: ItemStatus.completed,
+      );
+      expect(a, isNot(equals(b)));
     });
   });
 }

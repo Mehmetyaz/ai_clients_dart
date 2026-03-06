@@ -1,6 +1,7 @@
 import 'package:meta/meta.dart';
 
 import 'common/equality_helpers.dart';
+import 'config/prompt_cache_retention.dart';
 import 'config/response_status.dart';
 import 'config/service_tier.dart';
 import 'content/output_content.dart';
@@ -68,6 +69,12 @@ class Response {
   /// Whether parallel tool calls were allowed.
   final bool? parallelToolCalls;
 
+  /// The prompt cache key for this response.
+  final String? promptCacheKey;
+
+  /// The prompt cache retention policy.
+  final PromptCacheRetention? promptCacheRetention;
+
   /// Creates a [Response].
   const Response({
     required this.id,
@@ -88,6 +95,8 @@ class Response {
     this.topP,
     this.background,
     this.parallelToolCalls,
+    this.promptCacheKey,
+    this.promptCacheRetention,
   });
 
   /// Creates a [Response] from JSON.
@@ -123,6 +132,12 @@ class Response {
       topP: (json['top_p'] as num?)?.toDouble(),
       background: json['background'] as bool?,
       parallelToolCalls: json['parallel_tool_calls'] as bool?,
+      promptCacheKey: json['prompt_cache_key'] as String?,
+      promptCacheRetention: json['prompt_cache_retention'] != null
+          ? PromptCacheRetention.fromJson(
+              json['prompt_cache_retention'] as String,
+            )
+          : null,
     );
   }
 
@@ -147,6 +162,9 @@ class Response {
     if (topP != null) 'top_p': topP,
     if (background != null) 'background': background,
     if (parallelToolCalls != null) 'parallel_tool_calls': parallelToolCalls,
+    if (promptCacheKey != null) 'prompt_cache_key': promptCacheKey,
+    if (promptCacheRetention != null)
+      'prompt_cache_retention': promptCacheRetention!.toJson(),
   };
 
   // ============================================================
@@ -233,6 +251,21 @@ class Response {
     return output.whereType<McpCallOutputItem>().toList();
   }
 
+  /// Returns all tool search call items from the output.
+  List<ToolSearchCallOutputItem> get toolSearchCalls {
+    return output.whereType<ToolSearchCallOutputItem>().toList();
+  }
+
+  /// Returns all tool search output items from the output.
+  List<ToolSearchOutputItem> get toolSearchOutputs {
+    return output.whereType<ToolSearchOutputItem>().toList();
+  }
+
+  /// Returns all computer call items from the output.
+  List<ComputerCallOutputItem> get computerCalls {
+    return output.whereType<ComputerCallOutputItem>().toList();
+  }
+
   /// Whether the response is complete.
   bool get isComplete => status == ResponseStatus.completed;
 
@@ -264,7 +297,9 @@ class Response {
           temperature == other.temperature &&
           topP == other.topP &&
           background == other.background &&
-          parallelToolCalls == other.parallelToolCalls;
+          parallelToolCalls == other.parallelToolCalls &&
+          promptCacheKey == other.promptCacheKey &&
+          promptCacheRetention == other.promptCacheRetention;
 
   @override
   int get hashCode => Object.hashAll([
@@ -286,6 +321,8 @@ class Response {
     topP,
     background,
     parallelToolCalls,
+    promptCacheKey,
+    promptCacheRetention,
   ]);
 
   @override

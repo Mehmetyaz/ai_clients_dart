@@ -1,11 +1,35 @@
 import 'package:meta/meta.dart';
 
 import '../common/equality_helpers.dart';
+import '../config/search_content_type.dart';
+import '../config/tool_search_execution_type.dart';
 import 'code_interpreter_container.dart';
+
+/// Marker interface for tools that may appear inside a [NamespaceTool].
+///
+/// Only [FunctionTool] and [CustomTool] are permitted by the spec.
+abstract interface class NamespaceAllowedTool {
+  /// Converts this tool to its JSON representation.
+  Map<String, dynamic> toJson();
+}
 
 /// Tool definition for the Responses API.
 ///
-/// Supports function tools, MCP tools, and OpenAI built-in tools.
+/// ## Supported Tools
+///
+/// - [FunctionTool] - Custom function definitions
+/// - [CustomTool] - Custom tool (type: 'custom')
+/// - [WebSearchTool] - Built-in web search
+/// - [FileSearchTool] - Search vector stores
+/// - [CodeInterpreterTool] - Execute code
+/// - [ComputerUseTool] - Control a computer (preview)
+/// - [ComputerTool] - Control a computer (GA)
+/// - [ImageGenerationTool] - Generate images
+/// - [McpTool] - Model Context Protocol tools
+/// - [ToolSearchTool] - Search available tools
+/// - [NamespaceTool] - Group tools under a namespace
+/// - [ShellTool] - Hosted shell tool
+/// - [LocalShellTool] - Local shell tool
 sealed class ResponseTool {
   /// Creates a [ResponseTool].
   const ResponseTool();
@@ -22,9 +46,13 @@ sealed class ResponseTool {
       'code_interpreter' => CodeInterpreterTool.fromJson(json),
       'computer_use_preview' => ComputerUseTool.fromJson(json),
       'image_generation' => ImageGenerationTool.fromJson(json),
+      'computer' => ComputerTool.fromJson(json),
       'mcp' => McpTool.fromJson(json),
+      'namespace' => NamespaceTool.fromJson(json),
       'shell' => ShellTool.fromJson(json),
       'local_shell' => LocalShellTool.fromJson(json),
+      'tool_search' => ToolSearchTool.fromJson(json),
+      'custom' => CustomTool.fromJson(json),
       _ => throw FormatException('Unknown ResponseTool type: $type'),
     };
   }
@@ -35,20 +63,24 @@ sealed class ResponseTool {
     String? description,
     Map<String, dynamic>? parameters,
     bool? strict,
+    bool? deferLoading,
   }) => FunctionTool(
     name: name,
     description: description,
     parameters: parameters,
     strict: strict,
+    deferLoading: deferLoading,
   );
 
   /// Creates a web search tool.
   static WebSearchTool webSearch({
     String? searchContextSize,
     ApproximateLocation? userLocation,
+    List<SearchContentType>? searchContentTypes,
   }) => WebSearchTool(
     searchContextSize: searchContextSize,
     userLocation: userLocation,
+    searchContentTypes: searchContentTypes,
   );
 
   /// Creates a file search tool.
@@ -103,17 +135,40 @@ sealed class ResponseTool {
     size: size,
   );
 
+  /// Creates a computer tool (GA).
+  static ComputerTool computer() => const ComputerTool();
+
+  /// Creates a namespace tool.
+  static NamespaceTool namespace({
+    required String name,
+    required String description,
+    required List<NamespaceAllowedTool> tools,
+  }) => NamespaceTool(name: name, description: description, tools: tools);
+
+  /// Creates a tool search tool.
+  static ToolSearchTool toolSearch({
+    ToolSearchExecutionType? execution,
+    String? description,
+    Map<String, dynamic>? parameters,
+  }) => ToolSearchTool(
+    execution: execution,
+    description: description,
+    parameters: parameters,
+  );
+
   /// Creates an MCP tool.
   static McpTool mcp({
     required String serverLabel,
     required String serverUrl,
     List<String>? allowedTools,
     String? requireApproval,
+    bool? deferLoading,
   }) => McpTool(
     serverLabel: serverLabel,
     serverUrl: serverUrl,
     allowedTools: allowedTools,
     requireApproval: requireApproval,
+    deferLoading: deferLoading,
   );
 
   /// Creates a hosted shell tool.
@@ -128,7 +183,7 @@ sealed class ResponseTool {
 
 /// A function tool.
 @immutable
-class FunctionTool extends ResponseTool {
+class FunctionTool extends ResponseTool implements NamespaceAllowedTool {
   /// The function name.
   final String name;
 
@@ -141,12 +196,16 @@ class FunctionTool extends ResponseTool {
   /// Whether to enable strict schema adherence.
   final bool? strict;
 
+  /// Whether to defer loading this tool until needed.
+  final bool? deferLoading;
+
   /// Creates a [FunctionTool].
   const FunctionTool({
     required this.name,
     this.description,
     this.parameters,
     this.strict,
+    this.deferLoading,
   });
 
   /// Creates a [FunctionTool] from JSON.
@@ -156,6 +215,7 @@ class FunctionTool extends ResponseTool {
       description: json['description'] as String?,
       parameters: json['parameters'] as Map<String, dynamic>?,
       strict: json['strict'] as bool?,
+      deferLoading: json['defer_loading'] as bool?,
     );
   }
 
@@ -166,6 +226,7 @@ class FunctionTool extends ResponseTool {
     if (description != null) 'description': description,
     if (parameters != null) 'parameters': parameters,
     if (strict != null) 'strict': strict,
+    if (deferLoading != null) 'defer_loading': deferLoading,
   };
 
   @override
@@ -176,15 +237,16 @@ class FunctionTool extends ResponseTool {
           name == other.name &&
           description == other.description &&
           mapsEqual(parameters, other.parameters) &&
-          strict == other.strict;
+          strict == other.strict &&
+          deferLoading == other.deferLoading;
 
   @override
   int get hashCode =>
-      Object.hash(name, description, mapHash(parameters), strict);
+      Object.hash(name, description, mapHash(parameters), strict, deferLoading);
 
   @override
   String toString() =>
-      'FunctionTool(name: $name, description: $description, parameters: $parameters, strict: $strict)';
+      'FunctionTool(name: $name, description: $description, parameters: $parameters, strict: $strict, deferLoading: $deferLoading)';
 }
 
 /// Approximate user location for localized web search results.
@@ -261,11 +323,15 @@ class WebSearchTool extends ResponseTool {
   /// The user's approximate location for localized search results.
   final ApproximateLocation? userLocation;
 
+  /// The types of content to search for.
+  final List<SearchContentType>? searchContentTypes;
+
   /// Creates a [WebSearchTool].
   const WebSearchTool({
     this.type = 'web_search_preview',
     this.searchContextSize,
     this.userLocation,
+    this.searchContentTypes,
   });
 
   /// Creates a [WebSearchTool] from JSON.
@@ -278,6 +344,9 @@ class WebSearchTool extends ResponseTool {
               json['user_location'] as Map<String, dynamic>,
             )
           : null,
+      searchContentTypes: (json['search_content_types'] as List?)
+          ?.map((e) => SearchContentType.fromJson(e as String))
+          .toList(),
     );
   }
 
@@ -286,6 +355,10 @@ class WebSearchTool extends ResponseTool {
     'type': type,
     if (searchContextSize != null) 'search_context_size': searchContextSize,
     if (userLocation != null) 'user_location': userLocation!.toJson(),
+    if (searchContentTypes != null)
+      'search_content_types': searchContentTypes!
+          .map((e) => e.toJson())
+          .toList(),
   };
 
   @override
@@ -295,14 +368,20 @@ class WebSearchTool extends ResponseTool {
           runtimeType == other.runtimeType &&
           type == other.type &&
           searchContextSize == other.searchContextSize &&
-          userLocation == other.userLocation;
+          userLocation == other.userLocation &&
+          listsEqual(searchContentTypes, other.searchContentTypes);
 
   @override
-  int get hashCode => Object.hash(type, searchContextSize, userLocation);
+  int get hashCode => Object.hash(
+    type,
+    searchContextSize,
+    userLocation,
+    searchContentTypes != null ? Object.hashAll(searchContentTypes!) : null,
+  );
 
   @override
   String toString() =>
-      'WebSearchTool(type: $type, searchContextSize: $searchContextSize, userLocation: $userLocation)';
+      'WebSearchTool(type: $type, searchContextSize: $searchContextSize, userLocation: $userLocation, searchContentTypes: $searchContentTypes)';
 }
 
 /// A filter for file search metadata.
@@ -758,12 +837,16 @@ class McpTool extends ResponseTool {
   /// Approval requirement for tool execution.
   final String? requireApproval;
 
+  /// Whether to defer loading this tool until needed.
+  final bool? deferLoading;
+
   /// Creates an [McpTool].
   const McpTool({
     required this.serverLabel,
     required this.serverUrl,
     this.allowedTools,
     this.requireApproval,
+    this.deferLoading,
   });
 
   /// Creates an [McpTool] from JSON.
@@ -773,6 +856,7 @@ class McpTool extends ResponseTool {
       serverUrl: json['server_url'] as String,
       allowedTools: (json['allowed_tools'] as List?)?.cast<String>(),
       requireApproval: json['require_approval'] as String?,
+      deferLoading: json['defer_loading'] as bool?,
     );
   }
 
@@ -783,6 +867,7 @@ class McpTool extends ResponseTool {
     'server_url': serverUrl,
     if (allowedTools != null) 'allowed_tools': allowedTools,
     if (requireApproval != null) 'require_approval': requireApproval,
+    if (deferLoading != null) 'defer_loading': deferLoading,
   };
 
   @override
@@ -793,7 +878,8 @@ class McpTool extends ResponseTool {
           serverLabel == other.serverLabel &&
           serverUrl == other.serverUrl &&
           listsEqual(allowedTools, other.allowedTools) &&
-          requireApproval == other.requireApproval;
+          requireApproval == other.requireApproval &&
+          deferLoading == other.deferLoading;
 
   @override
   int get hashCode => Object.hash(
@@ -801,11 +887,12 @@ class McpTool extends ResponseTool {
     serverUrl,
     allowedTools != null ? Object.hashAll(allowedTools!) : null,
     requireApproval,
+    deferLoading,
   );
 
   @override
   String toString() =>
-      'McpTool(serverLabel: $serverLabel, serverUrl: $serverUrl, allowedTools: $allowedTools, requireApproval: $requireApproval)';
+      'McpTool(serverLabel: $serverLabel, serverUrl: $serverUrl, allowedTools: $allowedTools, requireApproval: $requireApproval, deferLoading: $deferLoading)';
 }
 
 /// Hosted shell tool for command execution.
@@ -836,6 +923,147 @@ class ShellTool extends ResponseTool {
   String toString() => 'ShellTool()';
 }
 
+/// Computer tool (GA) for controlling a computer.
+///
+/// This is distinct from [ComputerUseTool] (`computer_use_preview`).
+@immutable
+class ComputerTool extends ResponseTool {
+  /// Creates a [ComputerTool].
+  const ComputerTool();
+
+  /// Creates a [ComputerTool] from JSON.
+  factory ComputerTool.fromJson(Map<String, dynamic> json) {
+    if ((json['type'] as String?) != 'computer') {
+      throw const FormatException('Invalid type for ComputerTool');
+    }
+    return const ComputerTool();
+  }
+
+  @override
+  Map<String, dynamic> toJson() => const {'type': 'computer'};
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) || other is ComputerTool;
+
+  @override
+  int get hashCode => runtimeType.hashCode;
+
+  @override
+  String toString() => 'ComputerTool()';
+}
+
+/// Namespace tool for grouping tools under a namespace.
+@immutable
+class NamespaceTool extends ResponseTool {
+  /// The namespace name.
+  final String name;
+
+  /// Description of the namespace.
+  final String description;
+
+  /// The tools in this namespace.
+  final List<NamespaceAllowedTool> tools;
+
+  /// Creates a [NamespaceTool].
+  const NamespaceTool({
+    required this.name,
+    required this.description,
+    required this.tools,
+  });
+
+  /// Creates a [NamespaceTool] from JSON.
+  factory NamespaceTool.fromJson(Map<String, dynamic> json) {
+    return NamespaceTool(
+      name: json['name'] as String,
+      description: json['description'] as String,
+      tools: (json['tools'] as List).map<NamespaceAllowedTool>((e) {
+        final map = e as Map<String, dynamic>;
+        return switch (map['type'] as String?) {
+          'function' => FunctionTool.fromJson(map),
+          'custom' => CustomTool.fromJson(map),
+          _ => UnknownNamespaceTool(map),
+        };
+      }).toList(),
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'type': 'namespace',
+    'name': name,
+    'description': description,
+    'tools': tools.map((e) => e.toJson()).toList(),
+  };
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is NamespaceTool &&
+          runtimeType == other.runtimeType &&
+          name == other.name &&
+          description == other.description &&
+          listsEqual(tools, other.tools);
+
+  @override
+  int get hashCode => Object.hash(name, description, Object.hashAll(tools));
+
+  @override
+  String toString() =>
+      'NamespaceTool(name: $name, description: $description, tools: $tools)';
+}
+
+/// Tool search tool for searching available tools.
+@immutable
+class ToolSearchTool extends ResponseTool {
+  /// The execution type (server or client).
+  final ToolSearchExecutionType? execution;
+
+  /// Description of the tool search.
+  final String? description;
+
+  /// Parameters for the tool search.
+  final Map<String, dynamic>? parameters;
+
+  /// Creates a [ToolSearchTool].
+  const ToolSearchTool({this.execution, this.description, this.parameters});
+
+  /// Creates a [ToolSearchTool] from JSON.
+  factory ToolSearchTool.fromJson(Map<String, dynamic> json) {
+    return ToolSearchTool(
+      execution: json['execution'] != null
+          ? ToolSearchExecutionType.fromJson(json['execution'] as String)
+          : null,
+      description: json['description'] as String?,
+      parameters: json['parameters'] as Map<String, dynamic>?,
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'type': 'tool_search',
+    if (execution != null) 'execution': execution!.toJson(),
+    if (description != null) 'description': description,
+    if (parameters != null) 'parameters': parameters,
+  };
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ToolSearchTool &&
+          runtimeType == other.runtimeType &&
+          execution == other.execution &&
+          description == other.description &&
+          mapsEqual(parameters, other.parameters);
+
+  @override
+  int get hashCode => Object.hash(execution, description, mapHash(parameters));
+
+  @override
+  String toString() =>
+      'ToolSearchTool(execution: $execution, description: $description, parameters: $parameters)';
+}
+
 /// Local shell tool for command execution in a local environment.
 @immutable
 class LocalShellTool extends ResponseTool {
@@ -862,4 +1090,99 @@ class LocalShellTool extends ResponseTool {
 
   @override
   String toString() => 'LocalShellTool()';
+}
+
+/// A custom tool (type: 'custom').
+///
+/// Custom tools allow models to use provider-defined or operator-defined
+/// tool capabilities. The [format] field is kept as a raw map for forward
+/// compatibility as it accepts a discriminated union of format types.
+@immutable
+class CustomTool extends ResponseTool implements NamespaceAllowedTool {
+  /// The tool name.
+  final String name;
+
+  /// Description of what the tool does.
+  final String? description;
+
+  /// Input format specification. Kept as [Map] for forward compatibility.
+  final Map<String, dynamic>? format;
+
+  /// Whether to defer loading this tool until needed.
+  final bool? deferLoading;
+
+  /// Creates a [CustomTool].
+  const CustomTool({
+    required this.name,
+    this.description,
+    this.format,
+    this.deferLoading,
+  });
+
+  /// Creates a [CustomTool] from JSON.
+  factory CustomTool.fromJson(Map<String, dynamic> json) {
+    return CustomTool(
+      name: json['name'] as String,
+      description: json['description'] as String?,
+      format: json['format'] as Map<String, dynamic>?,
+      deferLoading: json['defer_loading'] as bool?,
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'type': 'custom',
+    'name': name,
+    if (description != null) 'description': description,
+    if (format != null) 'format': format,
+    if (deferLoading != null) 'defer_loading': deferLoading,
+  };
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CustomTool &&
+          runtimeType == other.runtimeType &&
+          name == other.name &&
+          description == other.description &&
+          mapsEqual(format, other.format) &&
+          deferLoading == other.deferLoading;
+
+  @override
+  int get hashCode =>
+      Object.hash(name, description, mapHash(format), deferLoading);
+
+  @override
+  String toString() =>
+      'CustomTool(name: $name, description: $description, format: $format, deferLoading: $deferLoading)';
+}
+
+/// An unknown namespace tool for forward compatibility.
+///
+/// Returned by [NamespaceTool.fromJson] when an unrecognized tool type is
+/// encountered inside a namespace. Preserves the raw JSON so the data can
+/// be round-tripped without loss.
+@immutable
+class UnknownNamespaceTool implements NamespaceAllowedTool {
+  /// The raw JSON data for this tool.
+  final Map<String, dynamic> data;
+
+  /// Creates an [UnknownNamespaceTool].
+  const UnknownNamespaceTool(this.data);
+
+  @override
+  Map<String, dynamic> toJson() => data;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is UnknownNamespaceTool &&
+          runtimeType == other.runtimeType &&
+          mapsEqual(data, other.data);
+
+  @override
+  int get hashCode => mapHash(data);
+
+  @override
+  String toString() => 'UnknownNamespaceTool(data: $data)';
 }

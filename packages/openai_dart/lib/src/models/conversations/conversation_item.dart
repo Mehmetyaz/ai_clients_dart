@@ -3,6 +3,8 @@ import 'package:meta/meta.dart';
 import '../responses/common/equality_helpers.dart';
 import '../responses/config/function_call_status.dart';
 import '../responses/config/item_status.dart';
+import '../responses/config/tool_search_execution_type.dart';
+import '../responses/tools/response_tool.dart';
 import 'conversation_content.dart';
 import 'conversation_message.dart';
 
@@ -48,6 +50,8 @@ sealed class ConversationItem {
       'code_interpreter_call' => ConversationCodeInterpreterCallItem.fromJson(
         json,
       ),
+      'tool_search_call' => ConversationToolSearchCallItem.fromJson(json),
+      'tool_search_output' => ConversationToolSearchOutputItem.fromJson(json),
       _ => ConversationUnknownItem(type: type, data: json),
     };
   }
@@ -1015,7 +1019,7 @@ class ConversationComputerCallOutputItem extends ConversationItem {
           callId == other.callId;
 
   @override
-  int get hashCode => Object.hash(id, callId, output);
+  int get hashCode => Object.hash(id, callId);
 
   @override
   String toString() =>
@@ -1091,6 +1095,157 @@ class ConversationCodeInterpreterCallItem extends ConversationItem {
   @override
   String toString() =>
       'ConversationCodeInterpreterCallItem(id: $id, code: $code, status: $status)';
+}
+
+/// A tool search call item in a conversation.
+@immutable
+class ConversationToolSearchCallItem extends ConversationItem {
+  /// Unique identifier.
+  final String id;
+
+  /// The call ID.
+  final String? callId;
+
+  /// The execution type.
+  final ToolSearchExecutionType? execution;
+
+  /// The arguments.
+  final Map<String, dynamic>? arguments;
+
+  /// Item status.
+  final ItemStatus? status;
+
+  /// Creates a [ConversationToolSearchCallItem].
+  const ConversationToolSearchCallItem({
+    required this.id,
+    this.callId,
+    this.execution,
+    this.arguments,
+    this.status,
+  });
+
+  /// Creates a [ConversationToolSearchCallItem] from JSON.
+  factory ConversationToolSearchCallItem.fromJson(Map<String, dynamic> json) {
+    return ConversationToolSearchCallItem(
+      id: json['id'] as String,
+      callId: json['call_id'] as String?,
+      execution: json['execution'] != null
+          ? ToolSearchExecutionType.fromJson(json['execution'] as String)
+          : null,
+      arguments: json['arguments'] as Map<String, dynamic>?,
+      status: json['status'] != null
+          ? ItemStatus.fromJson(json['status'] as String)
+          : null,
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'type': 'tool_search_call',
+    'id': id,
+    if (callId != null) 'call_id': callId,
+    if (execution != null) 'execution': execution!.toJson(),
+    if (arguments != null) 'arguments': arguments,
+    if (status != null) 'status': status!.toJson(),
+  };
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ConversationToolSearchCallItem &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          callId == other.callId &&
+          execution == other.execution &&
+          mapsDeepEqual(arguments, other.arguments) &&
+          status == other.status;
+
+  @override
+  int get hashCode =>
+      Object.hash(id, callId, execution, mapDeepHashCode(arguments), status);
+
+  @override
+  String toString() =>
+      'ConversationToolSearchCallItem(id: $id, callId: $callId, execution: $execution, status: $status)';
+}
+
+/// A tool search output item in a conversation.
+@immutable
+class ConversationToolSearchOutputItem extends ConversationItem {
+  /// Unique identifier.
+  final String id;
+
+  /// The call ID.
+  final String? callId;
+
+  /// The execution type.
+  final ToolSearchExecutionType? execution;
+
+  /// The discovered tools.
+  final List<ResponseTool>? tools;
+
+  /// Item status.
+  final ItemStatus? status;
+
+  /// Creates a [ConversationToolSearchOutputItem].
+  const ConversationToolSearchOutputItem({
+    required this.id,
+    this.callId,
+    this.execution,
+    this.tools,
+    this.status,
+  });
+
+  /// Creates a [ConversationToolSearchOutputItem] from JSON.
+  factory ConversationToolSearchOutputItem.fromJson(Map<String, dynamic> json) {
+    return ConversationToolSearchOutputItem(
+      id: json['id'] as String,
+      callId: json['call_id'] as String?,
+      execution: json['execution'] != null
+          ? ToolSearchExecutionType.fromJson(json['execution'] as String)
+          : null,
+      tools: (json['tools'] as List?)
+          ?.map((e) => ResponseTool.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      status: json['status'] != null
+          ? ItemStatus.fromJson(json['status'] as String)
+          : null,
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'type': 'tool_search_output',
+    'id': id,
+    if (callId != null) 'call_id': callId,
+    if (execution != null) 'execution': execution!.toJson(),
+    if (tools != null) 'tools': tools!.map((e) => e.toJson()).toList(),
+    if (status != null) 'status': status!.toJson(),
+  };
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ConversationToolSearchOutputItem &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          callId == other.callId &&
+          execution == other.execution &&
+          listsEqual(tools, other.tools) &&
+          status == other.status;
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    callId,
+    execution,
+    tools != null ? Object.hashAll(tools!) : null,
+    status,
+  );
+
+  @override
+  String toString() =>
+      'ConversationToolSearchOutputItem(id: $id, callId: $callId, execution: $execution, status: $status)';
 }
 
 /// An unknown item type (for forward compatibility).
