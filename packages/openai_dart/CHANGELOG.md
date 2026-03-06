@@ -1,3 +1,15 @@
+## 1.2.0
+
+Added support for GPT-5.4 and the new Responses API agent capabilities released alongside it — tool search (deferred tool loading at runtime), built-in computer use, and 1M-token context with message phases. Also added multi-modal moderation, fine-tune management methods, and missing `ChatCompletionCreateRequest` fields. Fixed handling of unknown streaming event types.
+
+- **FEAT**: GPT-5.4, tool search, computer use & message phase support ([#69](https://github.com/davidmigloz/ai_clients_dart/issues/69)). ([3dab848f](https://github.com/davidmigloz/ai_clients_dart/commit/3dab848fe035ef3b612fc6f156647c9290ba8554))
+- **FEAT**: Add missing ChatCompletionCreateRequest fields ([#73](https://github.com/davidmigloz/ai_clients_dart/issues/73)). ([0b06b159](https://github.com/davidmigloz/ai_clients_dart/commit/0b06b159afaa996c51c6762a52b2589fe8af7294))
+- **FEAT**: Add multi-modal moderation, fine-tune methods & missing fields ([#76](https://github.com/davidmigloz/ai_clients_dart/issues/76)). ([8b54049c](https://github.com/davidmigloz/ai_clients_dart/commit/8b54049c5eb51ba88bc9f144b7f4ed13bc5c10b8))
+- **FIX**: Handle unknown streaming event types gracefully ([#72](https://github.com/davidmigloz/ai_clients_dart/issues/72)). ([28a49804](https://github.com/davidmigloz/ai_clients_dart/commit/28a4980477d6dfeb83eaf6bc499c8c9e3c87da20))
+- **REFACTOR**: Migrate API skills to the shared api-toolkit CLI ([#74](https://github.com/davidmigloz/ai_clients_dart/issues/74)). ([923cc83e](https://github.com/davidmigloz/ai_clients_dart/commit/923cc83e9d72be370b2af8580a41970604df0787))
+- **DOCS**: Update README with SOTA models and Responses API ([#68](https://github.com/davidmigloz/ai_clients_dart/issues/68)). ([ff6d2774](https://github.com/davidmigloz/ai_clients_dart/commit/ff6d2774f0b2ae35c7b94c4ffcddb81881094f9f))
+- **CHORE**: Add .pubignore to exclude .agents/ and specs/ from publishing ([#78](https://github.com/davidmigloz/ai_clients_dart/issues/78)). ([0ff199bf](https://github.com/davidmigloz/ai_clients_dart/commit/0ff199bf9c7b4cc090cde73b994cca5ae5d3eaf9))
+
 ## 1.1.0
 
 Added `baseUrl` and `defaultHeaders` parameters to `withApiKey` constructors, aligned Responses API models with the latest OpenAI spec, fixed null index handling in `ToolCallDelta.fromJson`, and improved `hashCode` for list fields.
