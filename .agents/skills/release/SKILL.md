@@ -79,16 +79,26 @@ Read the `workspace` list from the root `pubspec.yaml` (the source of truth). Ea
 
 3. **No previous tag** (first release): use all commits touching `packages/{pkg}/`.
 
-4. **No commits since tag**: provisionally note this package for skipping — but **always continue to Step 5** to check for unreleased version bumps before finalizing the skip decision.
+4. **Filter out non-publishable changes**: If `packages/{pkg}/.pubignore` exists, read its lines as ignore entries. `.pubignore` supports gitignore-style syntax, but **for this release filtering step, only treat entries that are simple directory names** (with or without trailing `/`, no wildcards, `!` negation, or additional `/` path separators) as ignore directories relative to `packages/{pkg}/` (typically names like `.agents`, `.claude`, `specs`). Skip blank lines and lines starting with `#` (comments). Any more complex patterns in `.pubignore` should be ignored for this filtering logic and must not cause a commit to be misclassified as non-publishable.
 
-5. **Detect unreleased version bumps**: Compare the `version:` field in `packages/{pkg}/pubspec.yaml` against the version extracted from the latest tag:
+   For each commit found in step 2 (or step 3 for first releases), check which files it actually changed within the package:
+   ```bash
+   git show --pretty="" --name-only {hash} -- packages/{pkg}/
+   ```
+   If **every** changed file falls under one of the supported `.pubignore` directory-name entries (i.e., for some listed directory `DIR`, the path starts with `packages/{pkg}/DIR/`, such as `packages/{pkg}/.agents/` or `packages/{pkg}/specs/`), **exclude that commit** — it has no effect on the published package. Only retain commits that touch at least one file outside these ignored directories.
+
+   > This prevents internal tooling changes (AI agent configs, spec files, etc.) from triggering unnecessary releases. The commit is still recorded in git history but is not considered for version bumps or changelog entries.
+
+5. **No commits since tag** (after filtering): provisionally note this package for skipping — but **always continue to Step 6** to check for unreleased version bumps before finalizing the skip decision.
+
+6. **Detect unreleased version bumps**: Compare the `version:` field in `packages/{pkg}/pubspec.yaml` against the version extracted from the latest tag:
    ```bash
    # Extract version from latest tag (e.g., "foo_dart-v1.0.0" → "1.0.0")
    tag_version=$(echo "$latest_tag" | sed "s/^${pkg}-v//")
    # Read pubspec version
    pubspec_version=$(grep '^version:' packages/${pkg}/pubspec.yaml | awk '{print $2}')
    ```
-   - If `pubspec_version` > `tag_version`, this package has a **pre-applied version bump** — someone manually set the version in the pubspec but never published it. Flag this package for release even if Step 4 found "no commits since tag" would normally skip it.
+   - If `pubspec_version` > `tag_version`, this package has a **pre-applied version bump** — someone manually set the version in the pubspec but never published it. Flag this package for release even if Step 5 found "no commits since tag" would normally skip it.
    - If `pubspec_version` == `tag_version` and there are no new commits, skip as normal.
 
    > **Caution**: The git tag is the definitive indicator of whether a version has been published, not the pubspec. A pubspec may show `version: 1.0.0` while no `{pkg}-v1.0.0` tag exists — this means 1.0.0 was never actually released. Always check tags to determine published state.
@@ -142,7 +152,7 @@ If the current version has `+N` build metadata (e.g., `0.3.0+1`), strip the `+N`
 
 ### Pre-applied version bumps
 
-If Step 2.5 detected that a package's pubspec version is ahead of its latest tag version:
+If Step 2.6 detected that a package's pubspec version is ahead of its latest tag version:
 
 1. **Pubspec version >= computed bump version**: Use the pubspec version as-is. The version was intentionally set (e.g., a 1.0.0 rewrite) and should be respected.
 2. **Computed bump would be higher than pubspec version**: Warn the user and ask which version to use. This is unusual and may indicate a mistake (e.g., someone set a patch bump manually but breaking changes were added later).
