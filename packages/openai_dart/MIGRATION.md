@@ -535,6 +535,8 @@ Methods are organized by resource:
 - `client.uploads.create(...)` - Large file uploads
 - `client.containers.create(...)` - Code containers
 - `client.chatkit.sessions.create(...)` - ChatKit sessions
+- `client.realtimeSessions.create(...)` - Realtime sessions (ephemeral keys)
+- `client.realtimeSessions.calls.create(...)` - Realtime WebRTC calls
 
 ## Removed Features
 
@@ -703,7 +705,7 @@ import 'package:openai_dart/openai_dart_realtime.dart' as realtime;
 final session = await client.realtime.connect(
   model: 'gpt-realtime-1.5',
   config: realtime.SessionUpdateConfig(
-    voice: 'alloy',
+    voice: realtime.RealtimeVoice.alloy,
     instructions: 'You are a helpful assistant.',
   ),
 );
@@ -728,6 +730,52 @@ session.createResponse();
 
 // Close when done
 await session.close();
+```
+
+#### WebRTC Support
+
+In addition to WebSocket, the Realtime API supports WebRTC via HTTP-based SDP
+signaling. Use `client.realtimeSessions.calls` to manage WebRTC calls.
+
+> **Note:** For WebRTC peer connections in Flutter, use the
+> [`flutter_webrtc`](https://pub.dev/packages/flutter_webrtc) package.
+
+```dart
+import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'package:openai_dart/openai_dart.dart';
+import 'package:openai_dart/openai_dart_realtime.dart' as realtime;
+
+// 1. Create a peer connection and generate an SDP offer
+final pc = await createPeerConnection({'iceServers': []});
+final offer = await pc.createOffer();
+await pc.setLocalDescription(offer);
+
+// 2. Send the SDP offer to OpenAI and get the SDP answer
+final sdpAnswer = await client.realtimeSessions.calls.create(
+  realtime.RealtimeCallCreateRequest(
+    sdp: offer.sdp!,
+    session: realtime.RealtimeSessionCreateRequest(
+      model: 'gpt-realtime-1.5',
+      voice: realtime.RealtimeVoice.alloy,
+    ),
+  ),
+);
+
+// 3. Set the SDP answer to complete the WebRTC handshake
+await pc.setRemoteDescription(RTCSessionDescription(sdpAnswer, 'answer'));
+
+// Additional call management methods (callId is obtained from your SIP/telephony layer):
+const callId = 'call_xxx';
+await client.realtimeSessions.calls.accept(callId);
+await client.realtimeSessions.calls.hangup(callId);
+await client.realtimeSessions.calls.refer(
+  callId,
+  realtime.RealtimeCallReferRequest(targetUri: 'tel:+14155550123'),
+);
+await client.realtimeSessions.calls.reject(
+  callId,
+  request: realtime.RealtimeCallRejectRequest(statusCode: 486),
+);
 ```
 
 The Realtime API is imported from a separate entry point
@@ -903,7 +951,7 @@ final assistant = await client.beta.assistants.create(
 |-------------|----------|
 | `openai_dart.dart` | Modern APIs: Chat, Responses, Embeddings, Images, Audio, Files, Batches, Fine-tuning, Moderations, Evals |
 | `openai_dart_assistants.dart` | Deprecated: Assistants, Threads, Messages, Runs, Vector Stores |
-| `openai_dart_realtime.dart` | Realtime: WebSocket-based audio conversations |
+| `openai_dart_realtime.dart` | Realtime: WebSocket audio conversations and WebRTC call management |
 
 ### Conflicting Types
 
