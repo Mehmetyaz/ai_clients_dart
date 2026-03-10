@@ -180,7 +180,14 @@ class ChatCompletionsResource extends ResourceBase with StreamingResource {
       endpoint: _endpoint,
       body: requestBody,
       abortTrigger: abortTrigger,
-    ).map(ChatStreamEvent.fromJson);
+    ).map((json) {
+      final sseEvent = json['_event'] as String?;
+      final error = json['error'];
+      if (sseEvent == 'error' || error != null) {
+        throwInlineStreamError(json, sseEvent, error);
+      }
+      return ChatStreamEvent.fromJson(json);
+    });
   }
 
   /// Creates a streaming chat completion with accumulated events.

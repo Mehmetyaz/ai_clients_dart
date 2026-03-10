@@ -120,6 +120,13 @@ class CompletionsResource extends ResourceBase with StreamingResource {
       endpoint: _endpoint,
       body: requestBody,
       abortTrigger: abortTrigger,
-    ).map(Completion.fromJson);
+    ).map((json) {
+      final sseEvent = json['_event'] as String?;
+      final error = json['error'];
+      if (sseEvent == 'error' || error != null) {
+        throwInlineStreamError(json, sseEvent, error);
+      }
+      return Completion.fromJson(json);
+    });
   }
 }
