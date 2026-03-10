@@ -1,3 +1,9 @@
+## 1.0.3
+
+Updated README with badges, sponsor section, and improved documentation.
+
+- **DOCS**: Improve READMEs with badges, sponsor section, and vertex_ai deprecation ([#90](https://github.com/davidmigloz/ai_clients_dart/issues/90)). ([5741f2f3](https://github.com/davidmigloz/ai_clients_dart/commit/5741f2f3bcecdc947235aa10e9a7534baef95741))
+
 ## 1.0.2
 
 Internal improvements to build tooling and package publishing configuration.

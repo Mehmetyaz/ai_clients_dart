@@ -1,3 +1,13 @@
+## 1.4.0
+
+This release improves streaming error handling by detecting and surfacing errors embedded in chat and other streaming responses. It also updates model references to the latest `gpt-realtime-1.5` and `gpt-audio-1.5` models, and documents WebRTC support for the Realtime API.
+
+- **FEAT**: Detect inline streaming errors ([#91](https://github.com/davidmigloz/ai_clients_dart/issues/91)). ([9f0eaf37](https://github.com/davidmigloz/ai_clients_dart/commit/9f0eaf37dfa2e1ce7d05c4d0ae1b00af2d8f78f6))
+- **FEAT**: Update model references to gpt-realtime-1.5 and gpt-audio-1.5 ([#83](https://github.com/davidmigloz/ai_clients_dart/issues/83)). ([30d27274](https://github.com/davidmigloz/ai_clients_dart/commit/30d2727472f525c10224013b057e5dcec2fcf3fd))
+- **FIX**: Detect and throw errors embedded in chat streaming data ([#87](https://github.com/davidmigloz/ai_clients_dart/issues/87)). ([7bdeaaa5](https://github.com/davidmigloz/ai_clients_dart/commit/7bdeaaa50a63b17d754f1575514c5981a33d11ef))
+- **DOCS**: Improve READMEs with badges, sponsor section, and vertex_ai deprecation ([#90](https://github.com/davidmigloz/ai_clients_dart/issues/90)). ([5741f2f3](https://github.com/davidmigloz/ai_clients_dart/commit/5741f2f3bcecdc947235aa10e9a7534baef95741))
+- **DOCS**: Document WebRTC support in Realtime API ([#84](https://github.com/davidmigloz/ai_clients_dart/issues/84)). ([2f385378](https://github.com/davidmigloz/ai_clients_dart/commit/2f385378a032b390389924a9247914d5dd579bd3))
+
 ## 1.3.0
 
 Added missing `containerId` field to `CodeInterpreterCallOutputItem` and made `ContainerFile.bytes` nullable to match the API response.
