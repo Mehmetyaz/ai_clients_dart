@@ -14,37 +14,93 @@ import 'dart:convert';
 /// }
 /// ```
 Stream<Map<String, dynamic>> parseSSE(Stream<List<int>> byteStream) async* {
-  final buffer = StringBuffer();
+  final lines = byteStream
+      .transform(utf8.decoder)
+      .transform(const LineSplitter());
 
-  await for (final chunk in byteStream.transform(utf8.decoder)) {
-    buffer.write(chunk);
-    final content = buffer.toString();
-    final lines = content.split('\n');
+  String? currentEvent;
+  final dataBuffer = StringBuffer();
 
-    // Keep the last potentially incomplete line in the buffer
-    buffer.clear();
-    if (!content.endsWith('\n')) {
-      buffer.write(lines.removeLast());
-    }
+  await for (final line in lines) {
+    if (line.startsWith('event:')) {
+      currentEvent = line.substring(6).trim();
+    } else if (line.startsWith('data:')) {
+      final data = line.substring(5).trim();
 
-    for (final line in lines) {
-      final trimmed = line.trim();
-      if (trimmed.isEmpty) continue;
-
-      if (trimmed.startsWith('data: ')) {
-        final data = trimmed.substring(6).trim();
-
-        // Check for stream end marker
-        if (data == '[DONE]') {
-          return;
+      // Check for stream end marker — flush any buffered data first
+      if (data == '[DONE]') {
+        if (dataBuffer.isNotEmpty) {
+          final buffered = dataBuffer.toString();
+          dataBuffer.clear();
+          if (buffered.isNotEmpty) {
+            try {
+              final json = jsonDecode(buffered) as Map<String, dynamic>;
+              if (currentEvent != null) {
+                json['_event'] = currentEvent;
+              }
+              yield json;
+            } catch (_) {
+              if (currentEvent == 'error') {
+                yield <String, dynamic>{
+                  '_event': 'error',
+                  '_rawData': buffered,
+                  'type': 'error',
+                };
+              }
+            }
+          }
         }
+        return;
+      }
+
+      if (dataBuffer.isNotEmpty) dataBuffer.write('\n');
+      dataBuffer.write(data);
+    } else if (line.isEmpty) {
+      // Empty line signals end of event
+      if (dataBuffer.isNotEmpty) {
+        final data = dataBuffer.toString();
+        dataBuffer.clear();
 
         if (data.isNotEmpty) {
           try {
-            yield jsonDecode(data) as Map<String, dynamic>;
+            final json = jsonDecode(data) as Map<String, dynamic>;
+            if (currentEvent != null) {
+              json['_event'] = currentEvent;
+            }
+            yield json;
           } catch (_) {
-            // Skip malformed JSON
+            if (currentEvent == 'error') {
+              yield <String, dynamic>{
+                '_event': 'error',
+                '_rawData': data,
+                'type': 'error',
+              };
+            }
           }
+        }
+      }
+
+      currentEvent = null;
+    }
+  }
+
+  // Handle any remaining data
+  if (dataBuffer.isNotEmpty) {
+    final data = dataBuffer.toString();
+    if (data.isNotEmpty) {
+      try {
+        final json = jsonDecode(data) as Map<String, dynamic>;
+        if (currentEvent != null) {
+          json['_event'] = currentEvent;
+        }
+        yield json;
+      } catch (_) {
+        if (currentEvent == 'error') {
+          yield <String, dynamic>{
+            '_event': 'error',
+            '_rawData': data,
+            'type': 'error',
+          };
         }
       }
     }
@@ -52,6 +108,11 @@ Stream<Map<String, dynamic>> parseSSE(Stream<List<int>> byteStream) async* {
 }
 
 /// Parses a stream of bytes as SSE and converts to typed objects.
+///
+/// **Note:** This convenience function does not check for inline stream errors
+/// (e.g., `event: error` or `{"error": ...}` in data). If you need error
+/// detection, iterate over [parseSSE] directly and check each event before
+/// calling `fromJson`.
 ///
 /// Example:
 /// ```dart
@@ -80,12 +141,19 @@ Stream<T> parseSSEAs<T>(
 ///   print(json); // Each line parsed as Map<String, dynamic>
 /// }
 /// ```
-Stream<Map<String, dynamic>> parseNDJSON(Stream<List<int>> byteStream) {
-  return byteStream
+Stream<Map<String, dynamic>> parseNDJSON(Stream<List<int>> byteStream) async* {
+  final lines = byteStream
       .transform(utf8.decoder)
       .transform(const LineSplitter())
-      .where((line) => line.isNotEmpty)
-      .map((line) => jsonDecode(line) as Map<String, dynamic>);
+      .where((line) => line.isNotEmpty);
+
+  await for (final line in lines) {
+    try {
+      yield jsonDecode(line) as Map<String, dynamic>;
+    } catch (_) {
+      // Skip malformed JSON lines
+    }
+  }
 }
 
 /// Parses a stream of bytes as NDJSON and converts to typed objects.
@@ -100,12 +168,10 @@ Stream<Map<String, dynamic>> parseNDJSON(Stream<List<int>> byteStream) {
 Stream<T> parseNDJSONAs<T>(
   Stream<List<int>> byteStream,
   T Function(Map<String, dynamic>) fromJson,
-) {
-  return byteStream
-      .transform(utf8.decoder)
-      .transform(const LineSplitter())
-      .where((line) => line.isNotEmpty)
-      .map((line) => fromJson(jsonDecode(line) as Map<String, dynamic>));
+) async* {
+  await for (final json in parseNDJSON(byteStream)) {
+    yield fromJson(json);
+  }
 }
 
 /// Transforms a byte stream to lines.

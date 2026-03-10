@@ -45,27 +45,57 @@ class SseParser {
         // Data line
         final data = line.substring(5).trim();
 
-        // Check for end-of-stream marker
+        // Check for end-of-stream marker — flush any buffered data first
         if (data == '[DONE]') {
+          if (dataBuffer.isNotEmpty) {
+            final buffered = dataBuffer.toString();
+            dataBuffer.clear();
+            if (buffered.isNotEmpty) {
+              try {
+                final json = jsonDecode(buffered) as Map<String, dynamic>;
+                if (currentEvent != null) {
+                  json['_event'] = currentEvent;
+                }
+                yield json;
+              } catch (_) {
+                if (currentEvent == 'error') {
+                  yield <String, dynamic>{
+                    '_event': 'error',
+                    '_rawData': buffered,
+                    'type': 'error',
+                  };
+                }
+              }
+            }
+          }
           return;
         }
 
+        if (dataBuffer.isNotEmpty) dataBuffer.write('\n');
         dataBuffer.write(data);
-      } else if (line.isEmpty && dataBuffer.isNotEmpty) {
+      } else if (line.isEmpty) {
         // Empty line signals end of event
-        final data = dataBuffer.toString();
-        dataBuffer.clear();
+        if (dataBuffer.isNotEmpty) {
+          final data = dataBuffer.toString();
+          dataBuffer.clear();
 
-        if (data.isNotEmpty) {
-          try {
-            final json = jsonDecode(data) as Map<String, dynamic>;
-            // Include event type in parsed data if available
-            if (currentEvent != null) {
-              json['_event'] = currentEvent;
+          if (data.isNotEmpty) {
+            try {
+              final json = jsonDecode(data) as Map<String, dynamic>;
+              // Include event type in parsed data if available
+              if (currentEvent != null) {
+                json['_event'] = currentEvent;
+              }
+              yield json;
+            } catch (_) {
+              if (currentEvent == 'error') {
+                yield <String, dynamic>{
+                  '_event': 'error',
+                  '_rawData': data,
+                  'type': 'error',
+                };
+              }
             }
-            yield json;
-          } catch (_) {
-            // Skip malformed JSON
           }
         }
 
@@ -76,7 +106,7 @@ class SseParser {
     // Handle any remaining data
     if (dataBuffer.isNotEmpty) {
       final data = dataBuffer.toString();
-      if (data.isNotEmpty && data != '[DONE]') {
+      if (data.isNotEmpty) {
         try {
           final json = jsonDecode(data) as Map<String, dynamic>;
           if (currentEvent != null) {
@@ -84,7 +114,13 @@ class SseParser {
           }
           yield json;
         } catch (_) {
-          // Skip malformed JSON
+          if (currentEvent == 'error') {
+            yield <String, dynamic>{
+              '_event': 'error',
+              '_rawData': data,
+              'type': 'error',
+            };
+          }
         }
       }
     }
@@ -107,10 +143,22 @@ class SseParser {
         currentEvent = line.substring(6).trim();
       } else if (line.startsWith('data:')) {
         final data = line.substring(5).trim();
+
+        // Check for end-of-stream marker — flush any buffered data first
         if (data == '[DONE]') {
+          if (dataBuffer.isNotEmpty) {
+            yield SseEvent(
+              event: currentEvent,
+              data: dataBuffer.toString(),
+              id: id,
+              retry: retry,
+            );
+            dataBuffer.clear();
+          }
           yield const SseEvent(event: 'done', data: '[DONE]');
           return;
         }
+
         if (dataBuffer.isNotEmpty) {
           dataBuffer.write('\n');
         }
@@ -119,16 +167,18 @@ class SseParser {
         id = line.substring(3).trim();
       } else if (line.startsWith('retry:')) {
         retry = int.tryParse(line.substring(6).trim());
-      } else if (line.isEmpty && dataBuffer.isNotEmpty) {
+      } else if (line.isEmpty) {
         // Empty line signals end of event
-        yield SseEvent(
-          event: currentEvent,
-          data: dataBuffer.toString(),
-          id: id,
-          retry: retry,
-        );
+        if (dataBuffer.isNotEmpty) {
+          yield SseEvent(
+            event: currentEvent,
+            data: dataBuffer.toString(),
+            id: id,
+            retry: retry,
+          );
+          dataBuffer.clear();
+        }
 
-        dataBuffer.clear();
         currentEvent = null;
         id = null;
         retry = null;

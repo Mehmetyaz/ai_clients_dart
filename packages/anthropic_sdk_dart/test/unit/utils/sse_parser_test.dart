@@ -237,5 +237,39 @@ data: {"type":"message_start"}''';
       expect(results, hasLength(1));
       expect(results[0]['type'], 'message_start');
     });
+
+    test('yields synthetic JSON for event: error with non-JSON data', () async {
+      const input = 'event: error\ndata: Service unavailable\n\n';
+      final stream = Stream<List<int>>.value(utf8.encode(input));
+
+      final events = await SseParser().parse(stream).toList();
+      expect(events, hasLength(1));
+      expect(events[0]['_event'], 'error');
+      expect(events[0]['_rawData'], 'Service unavailable');
+      expect(events[0]['type'], 'error');
+    });
+
+    test('[DONE] flushes buffered data before terminating', () async {
+      const input = 'data: {"type":"message_start"}\ndata: [DONE]\n';
+      final stream = Stream<List<int>>.value(utf8.encode(input));
+
+      final events = await SseParser().parse(stream).toList();
+      expect(events, hasLength(1));
+      expect(events[0]['type'], 'message_start');
+    });
+
+    test('event type does not leak across events without data', () async {
+      // event: error with no data, followed by a normal event
+      const input =
+          'event: error\n\nevent: message_start\ndata: {"type":"message_start"}\n\n';
+      final stream = Stream<List<int>>.value(utf8.encode(input));
+
+      final events = await SseParser().parse(stream).toList();
+      expect(events, hasLength(1));
+      expect(events[0]['type'], 'message_start');
+      // The error event type should NOT have leaked
+      expect(events[0].containsKey('_event'), isTrue);
+      expect(events[0]['_event'], 'message_start');
+    });
   });
 }

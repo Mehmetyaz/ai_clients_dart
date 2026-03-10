@@ -1097,7 +1097,7 @@ class FunctionCallArgumentsDeltaEvent extends StreamingEvent {
   final int outputIndex;
 
   /// The call ID.
-  final String callId;
+  final String? callId;
 
   /// The arguments delta.
   final String delta;
@@ -1110,7 +1110,7 @@ class FunctionCallArgumentsDeltaEvent extends StreamingEvent {
     required this.sequenceNumber,
     required this.itemId,
     required this.outputIndex,
-    required this.callId,
+    this.callId,
     required this.delta,
     this.obfuscation,
   });
@@ -1121,7 +1121,7 @@ class FunctionCallArgumentsDeltaEvent extends StreamingEvent {
       sequenceNumber: json['sequence_number'] as int? ?? 0,
       itemId: json['item_id'] as String,
       outputIndex: json['output_index'] as int,
-      callId: json['call_id'] as String,
+      callId: json['call_id'] as String?,
       delta: json['delta'] as String,
       obfuscation: json['obfuscation'] as String?,
     );
@@ -1133,7 +1133,7 @@ class FunctionCallArgumentsDeltaEvent extends StreamingEvent {
     'sequence_number': sequenceNumber,
     'item_id': itemId,
     'output_index': outputIndex,
-    'call_id': callId,
+    if (callId != null) 'call_id': callId,
     'delta': delta,
     if (obfuscation != null) 'obfuscation': obfuscation,
   };
@@ -1181,7 +1181,7 @@ class FunctionCallArgumentsDoneEvent extends StreamingEvent {
   final int outputIndex;
 
   /// The call ID.
-  final String callId;
+  final String? callId;
 
   /// The complete arguments.
   final String arguments;
@@ -1191,7 +1191,7 @@ class FunctionCallArgumentsDoneEvent extends StreamingEvent {
     required this.sequenceNumber,
     required this.itemId,
     required this.outputIndex,
-    required this.callId,
+    this.callId,
     required this.arguments,
   });
 
@@ -1201,7 +1201,7 @@ class FunctionCallArgumentsDoneEvent extends StreamingEvent {
       sequenceNumber: json['sequence_number'] as int? ?? 0,
       itemId: json['item_id'] as String,
       outputIndex: json['output_index'] as int,
-      callId: json['call_id'] as String,
+      callId: json['call_id'] as String?,
       arguments: json['arguments'] as String,
     );
   }
@@ -1212,7 +1212,7 @@ class FunctionCallArgumentsDoneEvent extends StreamingEvent {
     'sequence_number': sequenceNumber,
     'item_id': itemId,
     'output_index': outputIndex,
-    'call_id': callId,
+    if (callId != null) 'call_id': callId,
     'arguments': arguments,
   };
 
@@ -1715,9 +1715,26 @@ class ErrorEvent extends StreamingEvent {
 
   /// Creates an [ErrorEvent] from JSON.
   factory ErrorEvent.fromJson(Map<String, dynamic> json) {
+    final error = json['error'];
+    if (error is Map<String, dynamic>) {
+      return ErrorEvent(
+        sequenceNumber: json['sequence_number'] as int? ?? 0,
+        error: ErrorPayload.fromJson(error),
+      );
+    }
+    if (error is String) {
+      return ErrorEvent(
+        sequenceNumber: json['sequence_number'] as int? ?? 0,
+        error: ErrorPayload(type: 'stream_error', message: error),
+      );
+    }
+    // Handle non-JSON SSE error events (e.g., plain-text payloads)
     return ErrorEvent(
       sequenceNumber: json['sequence_number'] as int? ?? 0,
-      error: ErrorPayload.fromJson(json['error'] as Map<String, dynamic>),
+      error: ErrorPayload(
+        type: 'stream_error',
+        message: (json['_rawData'] as String?) ?? 'Unknown stream error',
+      ),
     );
   }
 

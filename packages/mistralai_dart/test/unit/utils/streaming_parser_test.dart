@@ -62,7 +62,9 @@ void main() {
     test('handles UTF-8 characters correctly', () async {
       final sseData = [
         'data: {"text":"España 🇪🇸"}',
+        '',
         'data: {"text":"日本語 🗾"}',
+        '',
         'data: [DONE]',
       ].join('\n');
 
@@ -80,8 +82,10 @@ void main() {
         ':comment line',
         'event: message',
         'data: {"id":"1"}',
+        '',
         'id: 123',
         'data: {"id":"2"}',
+        '',
         'data: [DONE]',
       ].join('\n');
 
@@ -100,10 +104,10 @@ void main() {
       final resultsFuture = parseSSE(controller.stream).toList();
 
       // Send data in chunks
-      controller.add(utf8.encode('data: {"id":"1"}\n'));
+      controller.add(utf8.encode('data: {"id":"1"}\n\n'));
       await Future<void>.delayed(Duration.zero);
 
-      controller.add(utf8.encode('data: {"id":"2"}\n'));
+      controller.add(utf8.encode('data: {"id":"2"}\n\n'));
       await Future<void>.delayed(Duration.zero);
 
       controller.add(utf8.encode('data: [DONE]\n'));
@@ -125,7 +129,7 @@ void main() {
         ),
       });
 
-      final sseData = 'data: $largeJson\ndata: [DONE]';
+      final sseData = 'data: $largeJson\n\ndata: [DONE]';
 
       final bytes = utf8.encode(sseData);
       final stream = Stream<List<int>>.value(bytes);
@@ -139,8 +143,11 @@ void main() {
     test('skips malformed JSON', () async {
       final sseData = [
         'data: {"valid":"json"}',
+        '',
         'data: {not valid json}',
+        '',
         'data: {"another":"valid"}',
+        '',
         'data: [DONE]',
       ].join('\n');
 
@@ -161,7 +168,7 @@ void main() {
       controller.add(utf8.encode('data: {"id":'));
       await Future<void>.delayed(Duration.zero);
 
-      controller.add(utf8.encode('"split"}\n'));
+      controller.add(utf8.encode('"split"}\n\n'));
       await Future<void>.delayed(Duration.zero);
 
       controller.add(utf8.encode('data: [DONE]\n'));
@@ -178,6 +185,70 @@ void main() {
       final results = await parseSSE(stream).toList();
 
       expect(results, isEmpty);
+    });
+
+    test('parseSSE tracks event type and includes _event field', () async {
+      final bytes = utf8.encode(
+        'event: message\ndata: {"text":"hello"}\n\ndata: {"text":"world"}\n\n',
+      );
+      final stream = Stream<List<int>>.value(bytes);
+
+      final events = await parseSSE(stream).toList();
+      expect(events, hasLength(2));
+      expect(events[0]['_event'], 'message');
+      expect(events[0]['text'], 'hello');
+      expect(events[1].containsKey('_event'), isFalse);
+      expect(events[1]['text'], 'world');
+    });
+
+    test(
+      'parseSSE yields synthetic JSON for event: error with non-JSON data',
+      () async {
+        final bytes = utf8.encode(
+          'event: error\ndata: Service unavailable\n\n',
+        );
+        final stream = Stream<List<int>>.value(bytes);
+
+        final events = await parseSSE(stream).toList();
+        expect(events, hasLength(1));
+        expect(events[0]['_event'], 'error');
+        expect(events[0]['_rawData'], 'Service unavailable');
+        expect(events[0]['type'], 'error');
+      },
+    );
+
+    test('parseSSE yields event: error with JSON including _event', () async {
+      final bytes = utf8.encode(
+        'event: error\ndata: {"error":{"message":"Rate limit"}}\n\n',
+      );
+      final stream = Stream<List<int>>.value(bytes);
+
+      final events = await parseSSE(stream).toList();
+      expect(events, hasLength(1));
+      expect(events[0]['_event'], 'error');
+      expect(events[0]['error'], isA<Map<String, dynamic>>());
+    });
+
+    test('event type does not leak across events without data', () async {
+      final bytes = utf8.encode(
+        'event: error\n\nevent: message\ndata: {"text":"hello"}\n\n',
+      );
+      final stream = Stream<List<int>>.value(bytes);
+      final results = await parseSSE(stream).toList();
+
+      expect(results, hasLength(1));
+      expect(results[0]['text'], 'hello');
+      expect(results[0]['_event'], 'message');
+    });
+
+    test('[DONE] flushes buffered data before terminating', () async {
+      // data: line followed by data: [DONE] without blank line between
+      final bytes = utf8.encode('data: {"id":"1"}\ndata: [DONE]\n');
+      final stream = Stream<List<int>>.value(bytes);
+      final results = await parseSSE(stream).toList();
+
+      expect(results, hasLength(1));
+      expect(results[0]['id'], '1');
     });
   });
 
@@ -219,6 +290,22 @@ void main() {
       expect(results, hasLength(1));
       expect(results[0]['emoji'], '🚀');
       expect(results[0]['text'], '日本語');
+    });
+
+    test('skips malformed JSON gracefully', () async {
+      final ndjsonData = [
+        '{"id":"1"}',
+        '{invalid json}',
+        '{"id":"2"}',
+      ].join('\n');
+
+      final bytes = utf8.encode(ndjsonData);
+      final stream = Stream<List<int>>.value(bytes);
+      final results = await parseNDJSON(stream).toList();
+
+      expect(results, hasLength(2));
+      expect(results[0]['id'], '1');
+      expect(results[1]['id'], '2');
     });
   });
 

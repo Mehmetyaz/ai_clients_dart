@@ -24,22 +24,59 @@ class SseParser {
       if (line.startsWith('event:')) {
         currentEvent = line.substring(6).trim();
       } else if (line.startsWith('data:')) {
-        dataBuffer.write(line.substring(5).trim());
-      } else if (line.isEmpty && dataBuffer.isNotEmpty) {
-        // Empty line signals end of event
-        final data = dataBuffer.toString();
-        dataBuffer.clear();
+        final data = line.substring(5).trim();
 
-        if (data.isNotEmpty && data != '[DONE]') {
-          try {
-            final json = jsonDecode(data) as Map<String, dynamic>;
-            // Include event type in parsed data if available
-            if (currentEvent != null) {
-              json['_event'] = currentEvent;
+        // Check for end-of-stream marker — flush any buffered data first
+        if (data == '[DONE]') {
+          if (dataBuffer.isNotEmpty) {
+            final buffered = dataBuffer.toString();
+            dataBuffer.clear();
+            if (buffered.isNotEmpty) {
+              try {
+                final json = jsonDecode(buffered) as Map<String, dynamic>;
+                if (currentEvent != null) {
+                  json['_event'] = currentEvent;
+                }
+                yield json;
+              } catch (_) {
+                if (currentEvent == 'error') {
+                  yield <String, dynamic>{
+                    '_event': 'error',
+                    '_rawData': buffered,
+                    'type': 'error',
+                  };
+                }
+              }
             }
-            yield json;
-          } catch (_) {
-            // Skip malformed JSON
+          }
+          return;
+        }
+
+        if (dataBuffer.isNotEmpty) dataBuffer.write('\n');
+        dataBuffer.write(data);
+      } else if (line.isEmpty) {
+        // Empty line signals end of event
+        if (dataBuffer.isNotEmpty) {
+          final data = dataBuffer.toString();
+          dataBuffer.clear();
+
+          if (data.isNotEmpty) {
+            try {
+              final json = jsonDecode(data) as Map<String, dynamic>;
+              // Include event type in parsed data if available
+              if (currentEvent != null) {
+                json['_event'] = currentEvent;
+              }
+              yield json;
+            } catch (_) {
+              if (currentEvent == 'error') {
+                yield <String, dynamic>{
+                  '_event': 'error',
+                  '_rawData': data,
+                  'type': 'error',
+                };
+              }
+            }
           }
         }
 
@@ -50,7 +87,7 @@ class SseParser {
     // Handle any remaining data
     if (dataBuffer.isNotEmpty) {
       final data = dataBuffer.toString();
-      if (data.isNotEmpty && data != '[DONE]') {
+      if (data.isNotEmpty) {
         try {
           final json = jsonDecode(data) as Map<String, dynamic>;
           if (currentEvent != null) {
@@ -58,7 +95,13 @@ class SseParser {
           }
           yield json;
         } catch (_) {
-          // Skip malformed JSON
+          if (currentEvent == 'error') {
+            yield <String, dynamic>{
+              '_event': 'error',
+              '_rawData': data,
+              'type': 'error',
+            };
+          }
         }
       }
     }
