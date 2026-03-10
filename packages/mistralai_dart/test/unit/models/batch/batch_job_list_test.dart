@@ -10,14 +10,14 @@ void main() {
           'data': [
             {
               'id': 'batch-1',
-              'input_file_id': 'file-1',
+              'input_files': ['file-1'],
               'endpoint': '/v1/chat/completions',
               'model': 'mistral-small-latest',
               'status': 'QUEUED',
             },
             {
               'id': 'batch-2',
-              'input_file_id': 'file-2',
+              'input_files': ['file-2'],
               'endpoint': '/v1/embeddings',
               'model': 'mistral-embed',
               'status': 'SUCCESS',
@@ -60,7 +60,7 @@ void main() {
           data: [
             BatchJob(
               id: 'batch-1',
-              inputFileId: 'file-1',
+              inputFiles: ['file-1'],
               endpoint: '/v1/chat/completions',
               model: 'mistral-small-latest',
               status: BatchJobStatus.queued,
@@ -92,14 +92,14 @@ void main() {
         data: [
           BatchJob(
             id: 'batch-1',
-            inputFileId: 'file-1',
+            inputFiles: ['file-1'],
             endpoint: '/v1/chat/completions',
             model: 'mistral-small-latest',
             status: BatchJobStatus.queued,
           ),
           BatchJob(
             id: 'batch-2',
-            inputFileId: 'file-2',
+            inputFiles: ['file-2'],
             endpoint: '/v1/embeddings',
             model: 'mistral-embed',
             status: BatchJobStatus.success,

@@ -19,6 +19,8 @@ void main() {
         expect(agent.instructions, isNull);
         expect(agent.tools, isNull);
         expect(agent.metadata, isNull);
+        expect(agent.guardrails, isNull);
+        expect(agent.versionMessage, isNull);
         expect(agent.createdAt, isNull);
         expect(agent.updatedAt, isNull);
       });
@@ -35,6 +37,15 @@ void main() {
           instructions: 'You are a helpful coding assistant.',
           tools: const [Tool.codeInterpreter()],
           metadata: const {'team': 'engineering'},
+          guardrails: const [
+            GuardrailConfig(
+              blockOnError: true,
+              moderationLlmV1: ModerationLLMV1Config(
+                action: ModerationLLMV1Action.block,
+              ),
+            ),
+          ],
+          versionMessage: 'Initial release',
           version: 2,
           createdAt: createdAt,
           updatedAt: updatedAt,
@@ -46,6 +57,13 @@ void main() {
         expect(agent.instructions, 'You are a helpful coding assistant.');
         expect(agent.tools, hasLength(1));
         expect(agent.metadata?['team'], 'engineering');
+        expect(agent.guardrails, isNotNull);
+        expect(agent.guardrails!.first.blockOnError, isTrue);
+        expect(
+          agent.guardrails!.first.moderationLlmV1!.action,
+          ModerationLLMV1Action.block,
+        );
+        expect(agent.versionMessage, 'Initial release');
         expect(agent.version, 2);
         expect(agent.createdAt, createdAt);
         expect(agent.updatedAt, updatedAt);
@@ -69,6 +87,8 @@ void main() {
         expect(json.containsKey('instructions'), isFalse);
         expect(json.containsKey('tools'), isFalse);
         expect(json.containsKey('metadata'), isFalse);
+        expect(json.containsKey('guardrails'), isFalse);
+        expect(json.containsKey('version_message'), isFalse);
       });
 
       test('serializes all fields', () {
@@ -81,6 +101,15 @@ void main() {
           instructions: 'Be helpful.',
           tools: const [Tool.webSearch()],
           metadata: const {'key': 'value'},
+          guardrails: const [
+            GuardrailConfig(
+              blockOnError: true,
+              moderationLlmV1: ModerationLLMV1Config(
+                action: ModerationLLMV1Action.block,
+              ),
+            ),
+          ],
+          versionMessage: 'Added guardrails',
           version: 3,
           createdAt: createdAt,
         );
@@ -92,8 +121,13 @@ void main() {
         expect(json['instructions'], 'Be helpful.');
         expect(json['tools'], isList);
         expect(json['metadata'], {'key': 'value'});
+        expect(json['guardrails'], isList);
+        final guardrail =
+            (json['guardrails'] as List).first as Map<String, dynamic>;
+        expect(guardrail['block_on_error'], true);
+        expect(json['version_message'], 'Added guardrails');
         expect(json['version'], 3);
-        expect(json['created_at'], 1705312800);
+        expect(json['created_at'], createdAt.toIso8601String());
       });
     });
 
@@ -123,6 +157,13 @@ void main() {
             {'type': 'code_interpreter'},
           ],
           'metadata': {'env': 'production'},
+          'guardrails': [
+            {
+              'block_on_error': true,
+              'moderation_llm_v1': {'action': 'block'},
+            },
+          ],
+          'version_message': 'Updated tools',
           'version': 5,
           'created_at': 1705312800,
           'updated_at': 1705399200,
@@ -136,6 +177,13 @@ void main() {
         expect(agent.instructions, 'Complete instructions');
         expect(agent.tools, hasLength(1));
         expect(agent.metadata?['env'], 'production');
+        expect(agent.guardrails, isNotNull);
+        expect(agent.guardrails!.first.blockOnError, isTrue);
+        expect(
+          agent.guardrails!.first.moderationLlmV1!.action,
+          ModerationLLMV1Action.block,
+        );
+        expect(agent.versionMessage, 'Updated tools');
         expect(agent.version, 5);
         expect(agent.createdAt?.year, 2024);
         expect(agent.updatedAt?.year, 2024);
@@ -152,6 +200,8 @@ void main() {
         expect(agent.instructions, isNull);
         expect(agent.tools, isNull);
         expect(agent.metadata, isNull);
+        expect(agent.guardrails, isNull);
+        expect(agent.versionMessage, isNull);
         expect(agent.createdAt, isNull);
         expect(agent.updatedAt, isNull);
       });
@@ -214,6 +264,8 @@ void main() {
           instructions: 'Be thorough.',
           tools: const [Tool.codeInterpreter()],
           metadata: const {'test': true},
+          guardrails: const [GuardrailConfig(blockOnError: true)],
+          versionMessage: 'Round-trip test',
           version: 7,
           createdAt: DateTime.fromMillisecondsSinceEpoch(1705312800000),
         );
@@ -226,6 +278,11 @@ void main() {
         expect(restored.instructions, original.instructions);
         expect(restored.tools?.length, original.tools?.length);
         expect(restored.metadata?['test'], original.metadata?['test']);
+        expect(
+          restored.guardrails?.first.blockOnError,
+          original.guardrails?.first.blockOnError,
+        );
+        expect(restored.versionMessage, original.versionMessage);
         expect(restored.version, original.version);
       });
     });

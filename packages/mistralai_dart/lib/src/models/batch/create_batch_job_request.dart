@@ -1,12 +1,16 @@
 import 'package:meta/meta.dart';
 
+import '../../utils/equality_helpers.dart';
+import 'batch_request.dart';
+
 /// Request to create a batch job.
 @immutable
 class CreateBatchJobRequest {
-  /// The ID of the input file containing batch requests.
+  /// The list of input file IDs containing batch requests.
   ///
-  /// The file must be in JSONL format where each line is a valid request object.
-  final String inputFileId;
+  /// Each file must be in JSONL format where each line is a valid request
+  /// object. Typically either [inputFiles] or [requests] is provided.
+  final List<String>? inputFiles;
 
   /// The API endpoint to process requests against.
   ///
@@ -22,55 +26,64 @@ class CreateBatchJobRequest {
   /// Optional metadata for the batch job.
   final Map<String, dynamic>? metadata;
 
-  /// Timeout in seconds for completing the batch job.
+  /// Timeout in hours for completing the batch job.
   ///
   /// If not completed within this time, the job will be marked as timed out.
   final int? timeoutHours;
 
+  /// Inline batch requests.
+  ///
+  /// Alternative to using [inputFiles] for providing requests directly.
+  final List<BatchRequest>? requests;
+
   /// Creates a [CreateBatchJobRequest].
   const CreateBatchJobRequest({
-    required this.inputFileId,
+    this.inputFiles,
     required this.endpoint,
     required this.model,
     this.metadata,
     this.timeoutHours,
+    this.requests,
   });
 
   /// Creates a [CreateBatchJobRequest] from JSON.
   factory CreateBatchJobRequest.fromJson(Map<String, dynamic> json) =>
       CreateBatchJobRequest(
-        inputFileId:
-            json['input_files'] as String? ??
-            json['input_file_id'] as String? ??
-            '',
+        inputFiles: (json['input_files'] as List?)?.cast<String>(),
         endpoint: json['endpoint'] as String? ?? '',
         model: json['model'] as String? ?? '',
         metadata: json['metadata'] as Map<String, dynamic>?,
         timeoutHours: json['timeout_hours'] as int?,
+        requests: (json['requests'] as List?)
+            ?.map((e) => BatchRequest.fromJson(e as Map<String, dynamic>))
+            .toList(),
       );
 
   /// Converts to JSON.
   Map<String, dynamic> toJson() => {
-    'input_files': inputFileId,
+    if (inputFiles != null) 'input_files': inputFiles,
     'endpoint': endpoint,
     'model': model,
     if (metadata != null) 'metadata': metadata,
     if (timeoutHours != null) 'timeout_hours': timeoutHours,
+    if (requests != null) 'requests': requests!.map((e) => e.toJson()).toList(),
   };
 
   /// Creates a copy with the specified fields replaced.
   CreateBatchJobRequest copyWith({
-    String? inputFileId,
+    List<String>? inputFiles,
     String? endpoint,
     String? model,
     Map<String, dynamic>? metadata,
     int? timeoutHours,
+    List<BatchRequest>? requests,
   }) => CreateBatchJobRequest(
-    inputFileId: inputFileId ?? this.inputFileId,
+    inputFiles: inputFiles ?? this.inputFiles,
     endpoint: endpoint ?? this.endpoint,
     model: model ?? this.model,
     metadata: metadata ?? this.metadata,
     timeoutHours: timeoutHours ?? this.timeoutHours,
+    requests: requests ?? this.requests,
   );
 
   @override
@@ -78,14 +91,15 @@ class CreateBatchJobRequest {
       identical(this, other) ||
       other is CreateBatchJobRequest &&
           runtimeType == other.runtimeType &&
-          inputFileId == other.inputFileId &&
+          listsEqual(inputFiles, other.inputFiles) &&
           endpoint == other.endpoint &&
           model == other.model;
 
   @override
-  int get hashCode => Object.hash(inputFileId, endpoint, model);
+  int get hashCode =>
+      Object.hash(Object.hashAll(inputFiles ?? []), endpoint, model);
 
   @override
   String toString() =>
-      'CreateBatchJobRequest(inputFileId: $inputFileId, endpoint: $endpoint, model: $model)';
+      'CreateBatchJobRequest(inputFiles: $inputFiles, endpoint: $endpoint, model: $model)';
 }

@@ -1,6 +1,7 @@
 import 'package:meta/meta.dart';
 
 import '../tools/tool_call.dart';
+import 'confirmation_status.dart';
 
 /// A sealed class representing an entry in a conversation.
 ///
@@ -202,12 +203,24 @@ class FunctionCallEntry extends ConversationEntry {
   /// The ID of the tool call.
   final String? callId;
 
+  /// The ID of the agent that made this call.
+  final String? agentId;
+
+  /// The confirmation status of this tool call.
+  final ConfirmationStatus? confirmationStatus;
+
+  /// The model used for this function call.
+  final String? model;
+
   /// Creates a [FunctionCallEntry].
   const FunctionCallEntry({
     this.id,
     required this.name,
     required this.arguments,
     this.callId,
+    this.agentId,
+    this.confirmationStatus,
+    this.model,
   });
 
   @override
@@ -220,6 +233,11 @@ class FunctionCallEntry extends ConversationEntry {
       name: json['name'] as String? ?? '',
       arguments: json['arguments'] as String? ?? '',
       callId: json['call_id'] as String?,
+      agentId: json['agent_id'] as String?,
+      confirmationStatus: json['confirmation_status'] != null
+          ? ConfirmationStatus.fromJson(json['confirmation_status'] as String)
+          : null,
+      model: json['model'] as String?,
     );
   }
 
@@ -231,6 +249,10 @@ class FunctionCallEntry extends ConversationEntry {
       'arguments': arguments,
       if (id != null) 'id': id,
       if (callId != null) 'call_id': callId,
+      if (agentId != null) 'agent_id': agentId,
+      if (confirmationStatus != null)
+        'confirmation_status': confirmationStatus!.toJson(),
+      if (model != null) 'model': model,
     };
   }
 
@@ -240,12 +262,18 @@ class FunctionCallEntry extends ConversationEntry {
     String? name,
     String? arguments,
     String? callId,
+    String? agentId,
+    ConfirmationStatus? confirmationStatus,
+    String? model,
   }) {
     return FunctionCallEntry(
       id: id ?? this.id,
       name: name ?? this.name,
       arguments: arguments ?? this.arguments,
       callId: callId ?? this.callId,
+      agentId: agentId ?? this.agentId,
+      confirmationStatus: confirmationStatus ?? this.confirmationStatus,
+      model: model ?? this.model,
     );
   }
 
@@ -359,6 +387,12 @@ class ToolExecutionEntry extends ConversationEntry {
   /// The status of the execution.
   final String? status;
 
+  /// The ID of the agent that initiated the tool execution.
+  final String? agentId;
+
+  /// The model used for this tool execution.
+  final String? model;
+
   /// Creates a [ToolExecutionEntry].
   const ToolExecutionEntry({
     this.id,
@@ -366,6 +400,8 @@ class ToolExecutionEntry extends ConversationEntry {
     this.input,
     this.output,
     this.status,
+    this.agentId,
+    this.model,
   });
 
   @override
@@ -379,6 +415,8 @@ class ToolExecutionEntry extends ConversationEntry {
       input: json['input'] as Map<String, dynamic>?,
       output: json['output'] as Map<String, dynamic>?,
       status: json['status'] as String?,
+      agentId: json['agent_id'] as String?,
+      model: json['model'] as String?,
     );
   }
 
@@ -391,6 +429,8 @@ class ToolExecutionEntry extends ConversationEntry {
       if (input != null) 'input': input,
       if (output != null) 'output': output,
       if (status != null) 'status': status,
+      if (agentId != null) 'agent_id': agentId,
+      if (model != null) 'model': model,
     };
   }
 
@@ -401,6 +441,8 @@ class ToolExecutionEntry extends ConversationEntry {
     Map<String, dynamic>? input,
     Map<String, dynamic>? output,
     String? status,
+    String? agentId,
+    String? model,
   }) {
     return ToolExecutionEntry(
       id: id ?? this.id,
@@ -408,6 +450,8 @@ class ToolExecutionEntry extends ConversationEntry {
       input: input ?? this.input,
       output: output ?? this.output,
       status: status ?? this.status,
+      agentId: agentId ?? this.agentId,
+      model: model ?? this.model,
     );
   }
 

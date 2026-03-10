@@ -38,6 +38,14 @@ class TranscriptionRequest {
   /// Whether to include word-level timestamps.
   final bool? timestampGranularities;
 
+  /// Bias towards specific words or phrases during transcription.
+  ///
+  /// A list of words or phrases to bias towards during transcription.
+  final List<String>? contextBias;
+
+  /// Whether to enable speaker diarization.
+  final bool? diarize;
+
   /// Creates a [TranscriptionRequest].
   const TranscriptionRequest({
     required this.file,
@@ -47,6 +55,8 @@ class TranscriptionRequest {
     this.prompt,
     this.temperature,
     this.timestampGranularities,
+    this.contextBias,
+    this.diarize,
   });
 
   /// Creates a [TranscriptionRequest] from JSON.
@@ -59,6 +69,8 @@ class TranscriptionRequest {
         prompt: json['prompt'] as String?,
         temperature: (json['temperature'] as num?)?.toDouble(),
         timestampGranularities: json['timestamp_granularities'] as bool?,
+        contextBias: (json['context_bias'] as List?)?.cast<String>(),
+        diarize: json['diarize'] as bool?,
       );
 
   /// Converts to JSON.
@@ -71,6 +83,8 @@ class TranscriptionRequest {
     if (temperature != null) 'temperature': temperature,
     if (timestampGranularities != null)
       'timestamp_granularities': timestampGranularities,
+    if (contextBias != null) 'context_bias': contextBias,
+    if (diarize != null) 'diarize': diarize,
   };
 
   /// Creates a copy with the specified fields replaced.
@@ -82,6 +96,8 @@ class TranscriptionRequest {
     String? prompt,
     double? temperature,
     bool? timestampGranularities,
+    List<String>? contextBias,
+    bool? diarize,
   }) => TranscriptionRequest(
     file: file ?? this.file,
     model: model ?? this.model,
@@ -91,6 +107,8 @@ class TranscriptionRequest {
     temperature: temperature ?? this.temperature,
     timestampGranularities:
         timestampGranularities ?? this.timestampGranularities,
+    contextBias: contextBias ?? this.contextBias,
+    diarize: diarize ?? this.diarize,
   );
 
   @override

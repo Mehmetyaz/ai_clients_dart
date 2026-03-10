@@ -66,7 +66,7 @@ final inputFile = await client.files.upload(
 // Create the batch job
 final job = await client.batch.jobs.create(
   request: CreateBatchJobRequest(
-    inputFileId: inputFile.id,
+    inputFiles: [inputFile.id],
     endpoint: '/v1/chat/completions',
     model: 'mistral-small-latest',
     metadata: {'project': 'my-project'},
@@ -85,7 +85,7 @@ print('Created job: ${job.id}');
       print('Model: ${job.model}');
       print('Endpoint: ${job.endpoint}');
       print('Status: ${job.status.value}');
-      print('Input File: ${job.inputFileId}');
+      print('Input Files: ${job.inputFiles}');
       print('Output File: ${job.outputFileId ?? "N/A"}');
       print('Error File: ${job.errorFileId ?? "N/A"}');
 
@@ -213,7 +213,7 @@ final file = await client.files.upload(
 // 3. Create batch job
 final job = await client.batch.jobs.create(
   request: CreateBatchJobRequest(
-    inputFileId: file.id,
+    inputFiles: [file.id],
     endpoint: '/v1/chat/completions',
     model: 'mistral-small-latest',
   ),

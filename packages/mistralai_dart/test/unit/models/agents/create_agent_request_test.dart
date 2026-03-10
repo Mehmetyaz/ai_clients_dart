@@ -15,6 +15,8 @@ void main() {
         expect(request.instructions, isNull);
         expect(request.tools, isNull);
         expect(request.metadata, isNull);
+        expect(request.guardrails, isNull);
+        expect(request.versionMessage, isNull);
       });
 
       test('creates with all parameters', () {
@@ -25,6 +27,15 @@ void main() {
           instructions: 'You are a coding expert.',
           tools: [Tool.codeInterpreter(), Tool.webSearch()],
           metadata: {'team': 'dev'},
+          guardrails: [
+            GuardrailConfig(
+              blockOnError: true,
+              moderationLlmV1: ModerationLLMV1Config(
+                action: ModerationLLMV1Action.block,
+              ),
+            ),
+          ],
+          versionMessage: 'Initial version',
         );
         expect(request.name, 'Full Agent');
         expect(request.description, 'A comprehensive agent');
@@ -32,6 +43,13 @@ void main() {
         expect(request.instructions, 'You are a coding expert.');
         expect(request.tools, hasLength(2));
         expect(request.metadata?['team'], 'dev');
+        expect(request.guardrails, isNotNull);
+        expect(request.guardrails!.first.blockOnError, isTrue);
+        expect(
+          request.guardrails!.first.moderationLlmV1!.action,
+          ModerationLLMV1Action.block,
+        );
+        expect(request.versionMessage, 'Initial version');
       });
     });
 
@@ -48,6 +66,8 @@ void main() {
         expect(json.containsKey('instructions'), isFalse);
         expect(json.containsKey('tools'), isFalse);
         expect(json.containsKey('metadata'), isFalse);
+        expect(json.containsKey('guardrails'), isFalse);
+        expect(json.containsKey('version_message'), isFalse);
       });
 
       test('serializes all fields', () {
@@ -58,6 +78,8 @@ void main() {
           instructions: 'Be helpful.',
           tools: [Tool.codeInterpreter()],
           metadata: {'key': 'value'},
+          guardrails: [GuardrailConfig(blockOnError: true)],
+          versionMessage: 'v1 release',
         );
         final json = request.toJson();
         expect(json['name'], 'Full Agent');
@@ -66,6 +88,11 @@ void main() {
         expect(json['instructions'], 'Be helpful.');
         expect(json['tools'], isList);
         expect(json['metadata'], {'key': 'value'});
+        expect(json['guardrails'], isList);
+        final guardrail =
+            (json['guardrails'] as List).first as Map<String, dynamic>;
+        expect(guardrail['block_on_error'], true);
+        expect(json['version_message'], 'v1 release');
       });
     });
 
@@ -90,6 +117,13 @@ void main() {
             {'type': 'web_search'},
           ],
           'metadata': {'env': 'test'},
+          'guardrails': [
+            {
+              'block_on_error': true,
+              'moderation_llm_v1': {'action': 'block'},
+            },
+          ],
+          'version_message': 'Complete version',
         };
         final request = CreateAgentRequest.fromJson(json);
         expect(request.name, 'Complete Agent');
@@ -98,6 +132,13 @@ void main() {
         expect(request.instructions, 'Complete instructions');
         expect(request.tools, hasLength(1));
         expect(request.metadata?['env'], 'test');
+        expect(request.guardrails, isNotNull);
+        expect(request.guardrails!.first.blockOnError, isTrue);
+        expect(
+          request.guardrails!.first.moderationLlmV1!.action,
+          ModerationLLMV1Action.block,
+        );
+        expect(request.versionMessage, 'Complete version');
       });
     });
 
@@ -128,12 +169,16 @@ void main() {
           model: 'mistral-large-latest',
           instructions: 'New instructions',
           metadata: {'key': 'new'},
+          guardrails: const [GuardrailConfig(blockOnError: true)],
+          versionMessage: 'Copied version',
         );
         expect(copy.name, 'New Name');
         expect(copy.description, 'New desc');
         expect(copy.model, 'mistral-large-latest');
         expect(copy.instructions, 'New instructions');
         expect(copy.metadata?['key'], 'new');
+        expect(copy.guardrails?.first.blockOnError, isTrue);
+        expect(copy.versionMessage, 'Copied version');
       });
 
       test('copies with partial changes', () {

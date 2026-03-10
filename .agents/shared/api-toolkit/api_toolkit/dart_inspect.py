@@ -82,19 +82,34 @@ def extract_method_body(content: str, method_pattern: str) -> str:
     if not match:
         return ""
     start = match.end()
+
+    # If the pattern already consumed '=>', find the terminating semicolon
+    if "=>" in match.group(0):
+        # Include the '=>' in the returned body for consistency
+        arrow_pos = match.group(0).rfind("=>")
+        body_start = match.start() + arrow_pos
+        semicolon_index = content.find(";", start)
+        if semicolon_index != -1:
+            return content[body_start:semicolon_index]
+        newline_index = content.find("\n", start)
+        end_index = newline_index if newline_index != -1 else len(content)
+        return content[body_start:end_index]
+
     brace_index = content.find("{", start)
-    if brace_index == -1:
-        arrow_index = content.find("=>", start)
-        if arrow_index == -1 and "=>" in match.group(0):
-            arrow_index = content.rfind("=>", match.start(), match.end())
-        if arrow_index == -1:
-            return ""
+    arrow_index = content.find("=>", start)
+
+    # If '=>' comes before '{' (or no '{' at all), it's an arrow expression
+    if arrow_index != -1 and (brace_index == -1 or arrow_index < brace_index):
         semicolon_index = content.find(";", arrow_index)
-        if semicolon_index == -1:
-            newline_index = content.find("\n", arrow_index)
-            end_index = newline_index if newline_index != -1 else len(content)
-            return content[arrow_index:end_index]
-        return content[arrow_index:semicolon_index]
+        if semicolon_index != -1:
+            return content[arrow_index:semicolon_index]
+        newline_index = content.find("\n", arrow_index)
+        end_index = newline_index if newline_index != -1 else len(content)
+        return content[arrow_index:end_index]
+
+    # Block body — track brace depth
+    if brace_index == -1:
+        return ""
     depth = 0
     for position in range(brace_index, len(content)):
         char = content[position]
