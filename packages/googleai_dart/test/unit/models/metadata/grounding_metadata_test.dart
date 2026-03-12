@@ -1,7 +1,10 @@
+import 'package:googleai_dart/src/models/common/grounding_chunk_custom_metadata.dart';
+import 'package:googleai_dart/src/models/common/image.dart';
 import 'package:googleai_dart/src/models/metadata/grounding_chunk.dart';
 import 'package:googleai_dart/src/models/metadata/grounding_metadata.dart';
 import 'package:googleai_dart/src/models/metadata/grounding_support.dart';
 import 'package:googleai_dart/src/models/metadata/retrieval_metadata.dart';
+import 'package:googleai_dart/src/models/metadata/retrieved_context.dart';
 import 'package:googleai_dart/src/models/metadata/search_entry_point.dart';
 import 'package:googleai_dart/src/models/metadata/segment.dart';
 import 'package:googleai_dart/src/models/metadata/web.dart';
@@ -134,6 +137,46 @@ void main() {
         original.retrievalMetadata!.googleSearchDynamicRetrievalScore,
       );
     });
+
+    test('fromJson parses imageSearchQueries', () {
+      final json = {
+        'imageSearchQueries': ['cats', 'dogs'],
+      };
+
+      final metadata = GroundingMetadata.fromJson(json);
+
+      expect(metadata.imageSearchQueries, ['cats', 'dogs']);
+    });
+
+    test('toJson includes imageSearchQueries when non-null', () {
+      const metadata = GroundingMetadata(
+        imageSearchQueries: ['sunset', 'mountain'],
+      );
+
+      final json = metadata.toJson();
+
+      expect(json['imageSearchQueries'], ['sunset', 'mountain']);
+    });
+
+    test('toJson omits imageSearchQueries when null', () {
+      const metadata = GroundingMetadata(webSearchQueries: ['query']);
+
+      final json = metadata.toJson();
+
+      expect(json.containsKey('imageSearchQueries'), isFalse);
+    });
+
+    test('round-trip preserves imageSearchQueries', () {
+      final original = {
+        'imageSearchQueries': ['query1', 'query2'],
+        'webSearchQueries': ['web1'],
+      };
+
+      final metadata = GroundingMetadata.fromJson(original);
+      final serialized = metadata.toJson();
+
+      expect(serialized['imageSearchQueries'], original['imageSearchQueries']);
+    });
   });
 
   group('GroundingChunk', () {
@@ -148,9 +191,30 @@ void main() {
       expect(chunk.web!.uri, 'https://example.com');
       expect(chunk.web!.title, 'Example Title');
       expect(chunk.retrievedContext, isNull);
+      expect(chunk.image, isNull);
     });
 
-    test('toJson serializes correctly', () {
+    test('fromJson with image chunk', () {
+      final json = {
+        'image': {
+          'domain': 'example.com',
+          'imageUri': 'https://img.example.com/photo.jpg',
+          'sourceUri': 'https://example.com/page',
+          'title': 'Example GroundingImage',
+        },
+      };
+
+      final chunk = GroundingChunk.fromJson(json);
+
+      expect(chunk.image, isNotNull);
+      expect(chunk.image!.domain, 'example.com');
+      expect(chunk.image!.imageUri, 'https://img.example.com/photo.jpg');
+      expect(chunk.image!.sourceUri, 'https://example.com/page');
+      expect(chunk.image!.title, 'Example GroundingImage');
+      expect(chunk.web, isNull);
+    });
+
+    test('toJson serializes web chunk correctly', () {
       const chunk = GroundingChunk(
         web: Web(uri: 'https://test.com', title: 'Test'),
       );
@@ -160,6 +224,41 @@ void main() {
 
       expect(webJson!['uri'], 'https://test.com');
       expect(webJson['title'], 'Test');
+      expect(json.containsKey('image'), isFalse);
+    });
+
+    test('toJson serializes image chunk correctly', () {
+      const chunk = GroundingChunk(
+        image: GroundingImage(
+          domain: 'example.com',
+          imageUri: 'https://img.example.com/photo.jpg',
+        ),
+      );
+
+      final json = chunk.toJson();
+      final imageJson = json['image'] as Map<String, dynamic>?;
+
+      expect(imageJson!['domain'], 'example.com');
+      expect(imageJson['imageUri'], 'https://img.example.com/photo.jpg');
+      expect(json.containsKey('web'), isFalse);
+    });
+
+    test('round-trip preserves image chunk', () {
+      final json = {
+        'image': {
+          'domain': 'test.com',
+          'imageUri': 'https://img.test.com/img.png',
+          'title': 'Test GroundingImage',
+        },
+      };
+
+      final chunk = GroundingChunk.fromJson(json);
+      final serialized = chunk.toJson();
+      final imageJson = serialized['image'] as Map<String, dynamic>;
+
+      expect(imageJson['domain'], 'test.com');
+      expect(imageJson['imageUri'], 'https://img.test.com/img.png');
+      expect(imageJson['title'], 'Test GroundingImage');
     });
   });
 
@@ -179,6 +278,50 @@ void main() {
       expect(support.groundingChunkIndices, [0, 1]);
       expect(support.confidenceScores, [0.9, 0.8]);
     });
+
+    test('fromJson parses renderedParts', () {
+      final json = {
+        'groundingChunkIndices': [0],
+        'confidenceScores': [0.95],
+        'renderedParts': [0, 2],
+      };
+
+      final support = GroundingSupport.fromJson(json);
+
+      expect(support.renderedParts, [0, 2]);
+    });
+
+    test('toJson serializes renderedParts', () {
+      const support = GroundingSupport(
+        groundingChunkIndices: [0],
+        renderedParts: [1, 3],
+      );
+
+      final json = support.toJson();
+
+      expect(json['renderedParts'], [1, 3]);
+    });
+
+    test('toJson omits null renderedParts', () {
+      const support = GroundingSupport(groundingChunkIndices: [0]);
+
+      final json = support.toJson();
+
+      expect(json.containsKey('renderedParts'), isFalse);
+    });
+
+    test('round-trip preserves renderedParts', () {
+      final json = {
+        'groundingChunkIndices': [0, 1],
+        'confidenceScores': [0.9, 0.8],
+        'renderedParts': [0, 1, 2],
+      };
+
+      final support = GroundingSupport.fromJson(json);
+      final serialized = support.toJson();
+
+      expect(serialized['renderedParts'], json['renderedParts']);
+    });
   });
 
   group('Segment', () {
@@ -194,6 +337,102 @@ void main() {
       expect(output['startIndex'], 5);
       expect(output['endIndex'], 15);
       expect(output['text'], 'test segment');
+    });
+  });
+
+  group('RetrievedContext', () {
+    test('fromJson parses customMetadata with string value', () {
+      final json = {
+        'uri': 'gs://bucket/doc.pdf',
+        'title': 'My Doc',
+        'customMetadata': [
+          {'key': 'source', 'stringValue': 'internal'},
+        ],
+      };
+
+      final ctx = RetrievedContext.fromJson(json);
+
+      expect(ctx.uri, 'gs://bucket/doc.pdf');
+      expect(ctx.customMetadata, hasLength(1));
+      expect(ctx.customMetadata![0].key, 'source');
+      expect(ctx.customMetadata![0].stringValue, 'internal');
+    });
+
+    test('fromJson parses customMetadata with numeric value', () {
+      final json = {
+        'customMetadata': [
+          {'key': 'score', 'numericValue': 0.95},
+        ],
+      };
+
+      final ctx = RetrievedContext.fromJson(json);
+
+      expect(ctx.customMetadata![0].numericValue, closeTo(0.95, 0.001));
+    });
+
+    test('fromJson parses customMetadata with stringListValue', () {
+      final json = {
+        'customMetadata': [
+          {
+            'key': 'tags',
+            'stringListValue': {
+              'values': ['dart', 'flutter'],
+            },
+          },
+        ],
+      };
+
+      final ctx = RetrievedContext.fromJson(json);
+
+      expect(ctx.customMetadata![0].stringListValue!.values, [
+        'dart',
+        'flutter',
+      ]);
+    });
+
+    test('toJson serializes customMetadata', () {
+      const ctx = RetrievedContext(
+        uri: 'gs://bucket/doc.pdf',
+        customMetadata: [
+          GroundingChunkCustomMetadata(key: 'author', stringValue: 'Alice'),
+        ],
+      );
+
+      final json = ctx.toJson();
+      final meta = (json['customMetadata'] as List)[0] as Map<String, dynamic>;
+
+      expect(meta['key'], 'author');
+      expect(meta['stringValue'], 'Alice');
+    });
+
+    test('toJson omits null customMetadata', () {
+      const ctx = RetrievedContext(uri: 'gs://bucket/doc.pdf');
+
+      final json = ctx.toJson();
+
+      expect(json.containsKey('customMetadata'), isFalse);
+    });
+
+    test('round-trip preserves customMetadata with stringListValue', () {
+      final json = {
+        'uri': 'gs://bucket/doc.pdf',
+        'customMetadata': [
+          {
+            'key': 'tags',
+            'stringListValue': {
+              'values': ['a', 'b'],
+            },
+          },
+        ],
+      };
+
+      final ctx = RetrievedContext.fromJson(json);
+      final serialized = ctx.toJson();
+      final meta =
+          (serialized['customMetadata'] as List)[0] as Map<String, dynamic>;
+      final slv = meta['stringListValue'] as Map<String, dynamic>;
+
+      expect(slv['values'], ['a', 'b']);
     });
   });
 
