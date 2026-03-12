@@ -16,7 +16,15 @@ void main() {
   late MockEmbeddingFunction mockEmbeddingFunction;
   late MockDataLoader mockDataLoader;
 
-  const testMetadata = Collection(id: 'test-id', name: 'test-collection');
+  const testMetadata = Collection(
+    id: 'test-id',
+    name: 'test-collection',
+    tenant: 'default_tenant',
+    database: 'default_database',
+    logPosition: 0,
+    version: 0,
+    configurationJson: CollectionConfiguration(),
+  );
 
   setUp(() {
     mockRecords = MockRecordsResource();
@@ -392,6 +400,11 @@ void main() {
             id: 'test-id',
             name: 'new-name',
             metadata: {'updated': true},
+            tenant: 'default_tenant',
+            database: 'default_database',
+            logPosition: 0,
+            version: 0,
+            configurationJson: CollectionConfiguration(),
           ),
         );
 
@@ -421,7 +434,9 @@ void main() {
 
     group('convenience methods', () {
       test('count() delegates to records', () async {
-        when(() => mockRecords.count()).thenAnswer((_) async => 42);
+        when(
+          () => mockRecords.count(readLevel: any(named: 'readLevel')),
+        ).thenAnswer((_) async => 42);
 
         final collection = ChromaCollection(
           records: mockRecords,
@@ -432,7 +447,9 @@ void main() {
         final count = await collection.count();
 
         expect(count, 42);
-        verify(() => mockRecords.count()).called(1);
+        verify(
+          () => mockRecords.count(readLevel: any(named: 'readLevel')),
+        ).called(1);
       });
 
       test('id and name getters work correctly', () {

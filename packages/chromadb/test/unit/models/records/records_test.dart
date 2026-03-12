@@ -82,6 +82,7 @@ void main() {
           {'key': 'value2'},
         ],
         'uris': ['uri1', 'uri2'],
+        'include': <dynamic>[],
       };
 
       final response = GetResponse.fromJson(json);
@@ -102,6 +103,7 @@ void main() {
     test('fromJson handles minimal response', () {
       final json = {
         'ids': ['id1'],
+        'include': <dynamic>[],
       };
 
       final response = GetResponse.fromJson(json);
@@ -121,6 +123,7 @@ void main() {
           {'key': 'value'},
           null,
         ],
+        'include': <dynamic>[],
       };
 
       final response = GetResponse.fromJson(json);
@@ -139,6 +142,7 @@ void main() {
           [0.1, 0.2],
           null, // null inner element
         ],
+        'include': <dynamic>[],
       };
 
       final response = GetResponse.fromJson(json);
@@ -166,18 +170,23 @@ void main() {
       ]);
     });
 
-    test('fromJson handles missing include field', () {
+    test('fromJson handles empty include field', () {
       final json = {
         'ids': ['id1'],
+        'include': <dynamic>[],
       };
 
       final response = GetResponse.fromJson(json);
 
-      expect(response.include, isNull);
+      expect(response.include, isEmpty);
     });
 
     test('toJson converts response correctly', () {
-      const response = GetResponse(ids: ['id1'], documents: ['doc1']);
+      const response = GetResponse(
+        ids: ['id1'],
+        documents: ['doc1'],
+        include: [],
+      );
 
       final json = response.toJson();
 
@@ -187,14 +196,14 @@ void main() {
     });
 
     test('length returns correct count', () {
-      const response = GetResponse(ids: ['id1', 'id2', 'id3']);
+      const response = GetResponse(ids: ['id1', 'id2', 'id3'], include: []);
 
       expect(response.length, 3);
     });
 
     test('isEmpty and isNotEmpty work correctly', () {
-      const empty = GetResponse(ids: []);
-      const notEmpty = GetResponse(ids: ['id1']);
+      const empty = GetResponse(ids: [], include: []);
+      const notEmpty = GetResponse(ids: ['id1'], include: []);
 
       expect(empty.isEmpty, isTrue);
       expect(empty.isNotEmpty, isFalse);
@@ -215,6 +224,7 @@ void main() {
           {'key': 'value2'},
         ],
         uris: ['uri1', 'uri2'],
+        include: [],
       );
 
       final copy = original.copyWith();
@@ -243,6 +253,7 @@ void main() {
           {'key': 'value'},
         ],
         uris: ['uri1'],
+        include: [],
       );
 
       final copy = original.copyWith(
@@ -260,17 +271,37 @@ void main() {
     });
 
     test('equality works correctly', () {
-      const response1 = GetResponse(ids: ['id1'], documents: ['doc1']);
-      const response2 = GetResponse(ids: ['id1'], documents: ['doc1']);
-      const response3 = GetResponse(ids: ['id2'], documents: ['doc1']);
+      const response1 = GetResponse(
+        ids: ['id1'],
+        documents: ['doc1'],
+        include: [],
+      );
+      const response2 = GetResponse(
+        ids: ['id1'],
+        documents: ['doc1'],
+        include: [],
+      );
+      const response3 = GetResponse(
+        ids: ['id2'],
+        documents: ['doc1'],
+        include: [],
+      );
 
       expect(response1, equals(response2));
       expect(response1, isNot(equals(response3)));
     });
 
     test('hashCode is consistent with equality', () {
-      const response1 = GetResponse(ids: ['id1'], documents: ['doc1']);
-      const response2 = GetResponse(ids: ['id1'], documents: ['doc1']);
+      const response1 = GetResponse(
+        ids: ['id1'],
+        documents: ['doc1'],
+        include: [],
+      );
+      const response2 = GetResponse(
+        ids: ['id1'],
+        documents: ['doc1'],
+        include: [],
+      );
 
       expect(response1.hashCode, equals(response2.hashCode));
     });
@@ -309,6 +340,7 @@ void main() {
           [0.1, 0.2],
           [0.3],
         ],
+        'include': <dynamic>[],
       };
 
       final response = QueryResponse.fromJson(json);
@@ -329,6 +361,7 @@ void main() {
         'ids': [
           ['id1'],
         ],
+        'include': <dynamic>[],
       };
 
       final response = QueryResponse.fromJson(json);
@@ -346,6 +379,7 @@ void main() {
           ['id1', 'id2'],
           null, // null inner list
         ],
+        'include': <dynamic>[],
       };
 
       final response = QueryResponse.fromJson(json);
@@ -368,6 +402,7 @@ void main() {
           ],
           null, // null query result
         ],
+        'include': <dynamic>[],
       };
 
       final response = QueryResponse.fromJson(json);
@@ -390,6 +425,7 @@ void main() {
           ['doc1', null], // contains null doc
           null, // null inner list
         ],
+        'include': <dynamic>[],
       };
 
       final response = QueryResponse.fromJson(json);
@@ -409,6 +445,7 @@ void main() {
           [0.1, 0.2],
           null, // null inner list
         ],
+        'include': <dynamic>[],
       };
 
       final response = QueryResponse.fromJson(json);
@@ -436,16 +473,17 @@ void main() {
       ]);
     });
 
-    test('fromJson handles missing include field', () {
+    test('fromJson handles empty include field', () {
       final json = {
         'ids': [
           ['id1'],
         ],
+        'include': <dynamic>[],
       };
 
       final response = QueryResponse.fromJson(json);
 
-      expect(response.include, isNull);
+      expect(response.include, isEmpty);
     });
 
     test('toJson converts response correctly', () {
@@ -456,6 +494,7 @@ void main() {
         distances: [
           [0.1, 0.2],
         ],
+        include: [],
       );
 
       final json = response.toJson();
@@ -476,6 +515,7 @@ void main() {
           ['id2'],
           ['id3'],
         ],
+        include: [],
       );
 
       expect(response.queryCount, 3);
@@ -510,6 +550,7 @@ void main() {
         data: [
           ['data1', 'data2'],
         ],
+        include: [],
       );
 
       final copy = original.copyWith();
@@ -547,6 +588,7 @@ void main() {
         distances: [
           [0.1],
         ],
+        include: [],
       );
 
       final copy = original.copyWith(
@@ -571,6 +613,7 @@ void main() {
         distances: [
           [0.1],
         ],
+        include: [],
       );
       const response2 = QueryResponse(
         ids: [
@@ -579,6 +622,7 @@ void main() {
         distances: [
           [0.1],
         ],
+        include: [],
       );
       const response3 = QueryResponse(
         ids: [
@@ -587,6 +631,7 @@ void main() {
         distances: [
           [0.1],
         ],
+        include: [],
       );
 
       expect(response1, equals(response2));
@@ -601,6 +646,7 @@ void main() {
         distances: [
           [0.1],
         ],
+        include: [],
       );
       const response2 = QueryResponse(
         ids: [
@@ -609,9 +655,145 @@ void main() {
         distances: [
           [0.1],
         ],
+        include: [],
       );
 
       expect(response1.hashCode, equals(response2.hashCode));
+    });
+  });
+
+  group('IndexStatusResponse', () {
+    test('fromJson creates response with all fields', () {
+      final json = {
+        'num_indexed_ops': 100,
+        'num_unindexed_ops': 20,
+        'op_indexing_progress': 0.83,
+        'total_ops': 120,
+      };
+
+      final response = IndexStatusResponse.fromJson(json);
+
+      expect(response.numIndexedOps, 100);
+      expect(response.numUnindexedOps, 20);
+      expect(response.opIndexingProgress, 0.83);
+      expect(response.totalOps, 120);
+    });
+
+    test('toJson converts response correctly', () {
+      const response = IndexStatusResponse(
+        numIndexedOps: 50,
+        numUnindexedOps: 10,
+        opIndexingProgress: 0.83,
+        totalOps: 60,
+      );
+
+      final json = response.toJson();
+
+      expect(json['num_indexed_ops'], 50);
+      expect(json['num_unindexed_ops'], 10);
+      expect(json['op_indexing_progress'], 0.83);
+      expect(json['total_ops'], 60);
+    });
+
+    test('copyWith replaces specified fields', () {
+      const original = IndexStatusResponse(
+        numIndexedOps: 50,
+        numUnindexedOps: 10,
+        opIndexingProgress: 0.83,
+        totalOps: 60,
+      );
+
+      final copy = original.copyWith(numIndexedOps: 55, numUnindexedOps: 5);
+
+      expect(copy.numIndexedOps, 55);
+      expect(copy.numUnindexedOps, 5);
+      expect(copy.opIndexingProgress, 0.83);
+      expect(copy.totalOps, 60);
+    });
+
+    test('equality and hashCode', () {
+      const r1 = IndexStatusResponse(
+        numIndexedOps: 10,
+        numUnindexedOps: 5,
+        opIndexingProgress: 0.67,
+        totalOps: 15,
+      );
+      const r2 = IndexStatusResponse(
+        numIndexedOps: 10,
+        numUnindexedOps: 5,
+        opIndexingProgress: 0.67,
+        totalOps: 15,
+      );
+      const r3 = IndexStatusResponse(
+        numIndexedOps: 11,
+        numUnindexedOps: 5,
+        opIndexingProgress: 0.67,
+        totalOps: 15,
+      );
+
+      expect(r1, equals(r2));
+      expect(r1.hashCode, equals(r2.hashCode));
+      expect(r1, isNot(equals(r3)));
+    });
+  });
+
+  group('DeleteCollectionRecordsResponse', () {
+    test('fromJson creates response with deleted count', () {
+      final json = {'deleted': 5};
+
+      final response = DeleteCollectionRecordsResponse.fromJson(json);
+
+      expect(response.deleted, 5);
+    });
+
+    test('fromJson handles missing deleted field', () {
+      final json = <String, dynamic>{};
+
+      final response = DeleteCollectionRecordsResponse.fromJson(json);
+
+      expect(response.deleted, isNull);
+    });
+
+    test('toJson converts response correctly', () {
+      const response = DeleteCollectionRecordsResponse(deleted: 3);
+
+      final json = response.toJson();
+
+      expect(json['deleted'], 3);
+    });
+
+    test('toJson omits null deleted', () {
+      const response = DeleteCollectionRecordsResponse();
+
+      final json = response.toJson();
+
+      expect(json.containsKey('deleted'), isFalse);
+    });
+
+    test('copyWith replaces deleted', () {
+      const original = DeleteCollectionRecordsResponse(deleted: 5);
+
+      final copy = original.copyWith(deleted: 10);
+
+      expect(copy.deleted, 10);
+    });
+
+    test('copyWith can set deleted to null', () {
+      const original = DeleteCollectionRecordsResponse(deleted: 5);
+
+      final copy = original.copyWith(deleted: null);
+
+      expect(copy.deleted, isNull);
+    });
+
+    test('equality and hashCode', () {
+      const r1 = DeleteCollectionRecordsResponse(deleted: 5);
+      const r2 = DeleteCollectionRecordsResponse(deleted: 5);
+      const r3 = DeleteCollectionRecordsResponse(deleted: 3);
+
+      expect(r1, equals(r2));
+      expect(r1.hashCode, equals(r2.hashCode));
+      expect(r1, isNot(equals(r3)));
     });
   });
 }
