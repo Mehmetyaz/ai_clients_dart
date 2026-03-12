@@ -1,3 +1,9 @@
+## 1.3.1
+
+Fixed verification warnings in generated model classes.
+
+- **FIX**: Resolve verification warnings ([#97](https://github.com/davidmigloz/ai_clients_dart/issues/97)). ([a145eca1](https://github.com/davidmigloz/ai_clients_dart/commit/a145eca19d848f897115ff8af8109f0f96bfa788))
+
 ## 1.3.0
 
 This release adds inline streaming error detection and top-level cache control support for request parameters.

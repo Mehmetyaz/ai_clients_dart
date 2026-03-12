@@ -1,3 +1,11 @@
+## 3.5.0
+
+Updated to the latest Google AI API spec with new model types (grounding metadata, model info, and image models) and added [Gemini Embedding 2](https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-embedding-2/) support.
+
+- **FEAT**: Add Gemini Embedding 2 support ([#95](https://github.com/davidmigloz/ai_clients_dart/issues/95)). ([b7276ae8](https://github.com/davidmigloz/ai_clients_dart/commit/b7276ae8c994623d61738d3f6f3df83b405dfe9a))
+- **FEAT**: Update spec and implement new model types ([#93](https://github.com/davidmigloz/ai_clients_dart/issues/93)). ([b898d414](https://github.com/davidmigloz/ai_clients_dart/commit/b898d414e7978f8db4c6a7ee48520c4b852ba2d0))
+- **FIX**: Rename Image class and ModelStage enum value to match spec ([#96](https://github.com/davidmigloz/ai_clients_dart/issues/96)). ([ea3fc432](https://github.com/davidmigloz/ai_clients_dart/commit/ea3fc43262248d91551b79225f9e7ba74fe85b5a))
+
 ## 3.4.0
 
 This release adds inline streaming error detection for improved reliability when handling streamed responses.

@@ -1,3 +1,9 @@
+## 1.1.0
+
+Updated to the latest ChromaDB OpenAPI spec. Adds new models (`Quantization`, `SpannIndexConfig`, `DeleteCollectionRecordsResponse`, `IndexStatusResponse`, `ReadLevel`), makes several `Collection` fields non-nullable to match the spec, and adds a `readLevel` parameter to records query/get methods.
+
+- **FEAT**: Update OpenAPI spec and implement new models ([#99](https://github.com/davidmigloz/ai_clients_dart/issues/99)). ([d6767143](https://github.com/davidmigloz/ai_clients_dart/commit/d6767143c1e2aee8d71dfaad70b7c06dc71c8244))
+
 ## 1.0.3
 
 Updated README with badges, sponsor section, and improved documentation.

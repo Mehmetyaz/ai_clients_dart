@@ -1,3 +1,9 @@
+## 1.4.1
+
+Fixed verification warnings in generated model classes.
+
+- **FIX**: Resolve verification warnings ([#98](https://github.com/davidmigloz/ai_clients_dart/issues/98)). ([da231740](https://github.com/davidmigloz/ai_clients_dart/commit/da23174033da808336b35be4a00638b9666e3d43))
+
 ## 1.4.0
 
 This release adds inline streaming error detection for improved reliability when handling streamed responses.
