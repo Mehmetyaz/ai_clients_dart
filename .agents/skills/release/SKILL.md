@@ -176,9 +176,73 @@ Then list commits per package, grouped by:
 1. **Release-triggering commits** (feat, fix, refactor, docs, breaking)
 2. **Non-release commits** (test, chore, build, etc.) — shown for awareness but labeled as "will not affect version"
 
-**Ask user to confirm** before proceeding. They may override bump types or skip specific packages.
+**If `--plan` mode**: **Ask user to confirm** (they may override bump types or skip specific packages), then STOP here. Do not proceed to any file edits. Step 4b is skipped in plan mode, so confirmation happens in this step.
 
-**If `--plan` mode**: STOP here. Do not proceed to any file edits.
+**If `--dry-run` or full release mode**: Do not ask for confirmation yet — Step 4b may surface semver adjustments that affect the plan. Display the plan for the user to review; confirmation will happen at the end of Step 4b after semver verification.
+
+---
+
+## Step 4b: Fetch PR Context for Semver Verification and Changelog Summaries
+
+> **Skip this step in `--plan` mode.**
+
+Commit subjects are terse one-liners (e.g., `feat(chromadb): update OpenAPI spec and implement new models`). They tell you *what* file changed but not *why* it matters or what users should know. PR descriptions in this repo conventionally include a `## Summary` section with bullet points describing the full rationale, scope of changes, and migration notes. This step fetches that richer context to (1) verify that the semver bump from Step 3 is correct and (2) give Step 5 the information it needs to write meaningful changelog summaries.
+
+### Collect PR numbers
+
+From the commits parsed in Step 3, extract unique PR numbers. PR references appear as `(#N)` in commit subjects. Deduplicate across all packages — a single PR may appear in commits for multiple packages.
+
+### Fetch PR descriptions via subagent
+
+Spawn a **single subagent** (using the Agent tool) with:
+
+- The deduplicated list of PR numbers
+- Instructions to run `gh pr view {N} --json title,body` for each PR
+- For each PR body:
+  1. **Primary extraction**: Look for a `## Summary` heading and extract the bullet points underneath it (up to the next `##` heading or end of body). This is the conventional format used in this repo's PRs.
+  2. **Strip boilerplate**: Remove review tool badges, HTML comments (`<!-- ... -->`), test plan sections, and other template noise.
+  3. **Fallback**: If no `## Summary` heading exists, use the first substantive paragraph of the PR body (skip blank lines, HTML comments, and badge images at the top). Wrap the paragraph as a single entry in `summary_bullets` so downstream handling is uniform.
+  4. **Error fallback**: If `gh pr view` fails for a PR (e.g., PR was from a fork, or was deleted), log a warning and skip that PR — do not fail the release.
+- Additionally, flag any **breaking change signals** found in the PR body:
+  - Phrases like "breaking change", "migration required", "removed", "renamed", "changed signature", "no longer supports"
+  - A `BREAKING CHANGE:` section or `> Note: This release has breaking changes.`
+  - Fields or parameters that changed from optional to required, or were removed
+- Return a structured list: `[{pr: N, title: "...", summary_bullets: ["..."], has_breaking_signals: true/false, breaking_details: "..."}]`
+
+**Why a single subagent**: PR bodies can be large and noisy. Fetching them in a subagent keeps that content out of the main context window. A single subagent (rather than one per PR) avoids spawn overhead while still isolating the data.
+
+### Map PR summaries to packages
+
+After the subagent returns, map each PR's summary to the packages it affects by matching PR numbers back to the per-package commit lists from Step 3. A PR that appears in commits for multiple packages should be available to all of them.
+
+Store the mapping (package → list of PR summaries) for use in Step 5.
+
+### Verify semver bumps against PR context
+
+Cross-check the version bumps computed in Step 3 against the PR context returned by the subagent. Commit subjects often understate the impact of a change — a commit typed as `fix` or `refactor` may actually introduce breaking API changes that the PR description makes explicit.
+
+For each package, review the PR summaries (especially `has_breaking_signals` and `breaking_details`) and flag **semver mismatches**:
+
+1. **Undeclared breaking changes**: A PR's body describes breaking changes (removed fields, renamed APIs, changed defaults, dropped platform support) but no commit in that package carries a `!` suffix or `BREAKING CHANGE:` footer. → **Warn the user** and recommend upgrading the bump to major (or minor for pre-1.0 packages).
+
+2. **Feature misclassified as fix**: A PR describes new capabilities, new API surface, or new configuration options, but all commits are typed as `fix` or `refactor`. → **Suggest** upgrading the bump to minor (or patch for pre-1.0 packages).
+
+3. **No action needed**: The PR context confirms the commit-derived bump is appropriate.
+
+Present any flagged mismatches to the user along with the release plan from Step 4, and **ask the user to confirm** the final version bumps before proceeding to changelog writing. The user decides whether to accept or override. If there are no mismatches, confirm the plan as-is. Example:
+
+```
+⚠️  Semver check — PR context suggests bump adjustments:
+
+| Package      | Computed Bump | PR Signal          | Suggested Bump | Reason                                      |
+|--------------|---------------|--------------------|----------------|----------------------------------------------|
+| chromadb     | patch         | breaking signals   | minor (pre-1.0)| PR #99: nullable fields now required          |
+| openai_dart  | patch         | new feature        | minor          | PR #95: adds new embedding model support      |
+
+Accept computed bumps, or adjust? [accept / adjust]
+```
+
+> **Why this matters**: Semver is a contract with downstream users. A breaking change shipped as a patch version can break builds silently. Commit subjects are written quickly and are often wrong about impact level — PR descriptions, written for reviewers, are more reliable.
 
 ---
 
@@ -219,6 +283,21 @@ For each released package, **prepend** a new section to `packages/{pkg}/CHANGELO
 7. **Standard markdown list**: `- **TYPE**: ...` (no leading space)
 8. **Breaking note**: Only include `> Note: This release has breaking changes.` if there are breaking changes
 9. **AI summary**: Write 1-3 sentences summarizing the main changes in plain English. Place it between the breaking note (if any) and the entry list.
+
+   **Primary source**: Use the PR summaries collected in Step 4b as the primary source for writing the summary. PR descriptions contain the rationale, scope, and user-facing impact that commit subjects lack. Synthesize across multiple PRs into a coherent narrative — do not simply parrot PR titles or concatenate bullet points.
+
+   **Quality guidance**:
+   - Focus on **user-facing impact**: what changed, why it matters, and any migration notes
+   - Mention specific capabilities added or problems fixed, not just "updated X"
+   - If a release includes breaking changes, call out what broke and what users need to do
+
+   **Fallback**: If PR context is unavailable for some or all commits (e.g., Step 4b was skipped, PRs failed to fetch, or commits have no PR references), fall back to commit messages. Synthesize commit subjects into the best summary possible.
+
+   **Before/after example** — commit-only summary (current quality):
+   > Updated OpenAPI spec and added new models.
+
+   **PR-enriched summary (target quality):**
+   > Update ChromaDB client to latest API spec — adds quantization support, spanned index config, and read-level controls for queries. Collection fields that were previously nullable are now required, matching the upstream API contract.
 
 ### Pre-existing changelog sections
 
@@ -426,6 +505,10 @@ EOF
 8. **Partial publish failure** → report status, revert unpublished packages, only commit/tag published ones
 9. **Cross-package commits** → file-path detection handles correctly (same commit may appear in multiple packages)
 10. **Aggregate tag collision** → append counter suffix (`.1`, `.2`, etc.)
+11. **PR fetch failures** → warn and fall back to commit messages for changelog summaries
+12. **Commits without PR references** → use commit message only for that commit's contribution to the summary
+13. **PR covers multiple packages** → include its summary bullets in every relevant package's changelog summary
+14. **PR signals breaking but commits don't** → warn user and suggest bump upgrade; user decides
 
 ---
 
@@ -478,7 +561,8 @@ cat > /tmp/release-progress.md <<'EOF'
 ## Completed Steps
 - [x] Step 1: Environment validated
 - [x] Step 2-3: Changes detected, bumps computed
-- [x] Step 4: Plan confirmed
+- [x] Step 4: Plan displayed
+- [x] Step 4b: PR context fetched, semver verified, plan confirmed
 - [x] Step 5: Changelogs written (all packages)
 - [x] Step 6: pubspec.yaml updated (all packages)
 - [x] Step 7: Dry-run passed
@@ -500,7 +584,8 @@ Update this file after completing each step. A new session can read it to resume
 
 | Interrupted After | State | Recovery Procedure |
 |---|---|---|
-| **Step 4** (plan confirmed) | No files modified yet. | Start fresh from Step 5. |
+| **Step 4** (plan displayed) | No files modified yet. | Start fresh from Step 4b (PR context fetch and confirmation). |
+| **Step 4b** (plan confirmed) | No files modified yet. PR context fetched, semver verified. | Start fresh from Step 5. |
 | **Steps 5-6** (changelogs/pubspec written) | Working tree has uncommitted changes. | Verify the changes with `git diff`. Resume from Step 7 (dry-run publish). |
 | **Step 7** (dry-run passed) | Working tree has uncommitted changes, dry-run validated. | Resume from Step 8 (publish). |
 | **Step 8** (some packages published) | Some packages live on pub.dev, uncommitted changes in tree. | **Critical**: Check which packages are published (`curl -s https://pub.dev/api/packages/{pkg}`). For unpublished packages, revert their files (`git checkout HEAD -- packages/{pkg}/pubspec.yaml packages/{pkg}/CHANGELOG.md`). Resume from Step 8b with only the published packages. |
