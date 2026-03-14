@@ -1,5 +1,8 @@
 import 'package:meta/meta.dart';
 
+import '../common/copy_with_sentinel.dart';
+import '../responses/common/equality_helpers.dart';
+
 /// A tool available for the model to call.
 ///
 /// Currently only supports function tools, but the structure allows for
@@ -72,6 +75,11 @@ class Tool {
     'function': function.toJson(),
   };
 
+  /// Creates a copy with the given fields replaced.
+  Tool copyWith({String? type, FunctionDefinition? function}) {
+    return Tool(type: type ?? this.type, function: function ?? this.function);
+  }
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -84,7 +92,7 @@ class Tool {
   int get hashCode => Object.hash(type, function);
 
   @override
-  String toString() => 'Tool(type: $type, function: ${function.name})';
+  String toString() => 'Tool(type: $type, function: $function)';
 }
 
 /// A function definition for a tool.
@@ -137,6 +145,25 @@ class FunctionDefinition {
     if (strict) 'strict': strict,
   };
 
+  /// Creates a copy with the given fields replaced.
+  FunctionDefinition copyWith({
+    String? name,
+    Object? description = unsetCopyWithValue,
+    Object? parameters = unsetCopyWithValue,
+    bool? strict,
+  }) {
+    return FunctionDefinition(
+      name: name ?? this.name,
+      description: description == unsetCopyWithValue
+          ? this.description
+          : description as String?,
+      parameters: parameters == unsetCopyWithValue
+          ? this.parameters
+          : parameters as Map<String, dynamic>?,
+      strict: strict ?? this.strict,
+    );
+  }
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -144,11 +171,15 @@ class FunctionDefinition {
           runtimeType == other.runtimeType &&
           name == other.name &&
           description == other.description &&
+          mapsDeepEqual(parameters, other.parameters) &&
           strict == other.strict;
 
   @override
-  int get hashCode => Object.hash(name, description, strict);
+  int get hashCode =>
+      Object.hash(name, description, mapDeepHashCode(parameters), strict);
 
   @override
-  String toString() => 'FunctionDefinition(name: $name)';
+  String toString() =>
+      'FunctionDefinition(name: $name, description: $description, '
+      'parameters: $parameters, strict: $strict)';
 }

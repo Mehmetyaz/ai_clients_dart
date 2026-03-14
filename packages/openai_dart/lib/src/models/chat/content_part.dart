@@ -1,5 +1,7 @@
 import 'package:meta/meta.dart';
 
+import '../common/copy_with_sentinel.dart';
+
 /// A part of a multimodal message content.
 ///
 /// Content parts allow user messages to contain multiple types of content,
@@ -80,6 +82,11 @@ class TextContentPart extends ContentPart {
   @override
   Map<String, dynamic> toJson() => {'type': type, 'text': text};
 
+  /// Creates a copy with the given fields replaced.
+  TextContentPart copyWith({String? text}) {
+    return TextContentPart(text: text ?? this.text);
+  }
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -136,6 +143,19 @@ class ImageContentPart extends ContentPart {
     'image_url': {'url': url, if (detail != null) 'detail': detail!.toJson()},
   };
 
+  /// Creates a copy with the given fields replaced.
+  ImageContentPart copyWith({
+    String? url,
+    Object? detail = unsetCopyWithValue,
+  }) {
+    return ImageContentPart(
+      url: url ?? this.url,
+      detail: detail == unsetCopyWithValue
+          ? this.detail
+          : detail as ImageDetail?,
+    );
+  }
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -180,6 +200,14 @@ class AudioContentPart extends ContentPart {
     'type': type,
     'input_audio': {'data': data, 'format': format.toJson()},
   };
+
+  /// Creates a copy with the given fields replaced.
+  AudioContentPart copyWith({String? data, AudioFormat? format}) {
+    return AudioContentPart(
+      data: data ?? this.data,
+      format: format ?? this.format,
+    );
+  }
 
   @override
   bool operator ==(Object other) =>

@@ -1,5 +1,7 @@
 import 'package:meta/meta.dart';
 
+import '../common/copy_with_sentinel.dart';
+import '../responses/common/equality_helpers.dart';
 import 'content_part.dart';
 import 'reasoning_detail.dart';
 import 'tool_call.dart';
@@ -137,6 +139,14 @@ class SystemMessage extends ChatMessage {
     if (name != null) 'name': name,
   };
 
+  /// Creates a copy with the given fields replaced.
+  SystemMessage copyWith({String? content, Object? name = unsetCopyWithValue}) {
+    return SystemMessage(
+      content: content ?? this.content,
+      name: name == unsetCopyWithValue ? this.name : name as String?,
+    );
+  }
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -149,7 +159,7 @@ class SystemMessage extends ChatMessage {
   int get hashCode => Object.hash(content, name);
 
   @override
-  String toString() => 'ChatMessage.system($content)';
+  String toString() => 'ChatMessage.system(content: $content, name: $name)';
 }
 
 /// A developer message for multi-turn developer instructions.
@@ -185,6 +195,17 @@ class DeveloperMessage extends ChatMessage {
     if (name != null) 'name': name,
   };
 
+  /// Creates a copy with the given fields replaced.
+  DeveloperMessage copyWith({
+    String? content,
+    Object? name = unsetCopyWithValue,
+  }) {
+    return DeveloperMessage(
+      content: content ?? this.content,
+      name: name == unsetCopyWithValue ? this.name : name as String?,
+    );
+  }
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -197,7 +218,7 @@ class DeveloperMessage extends ChatMessage {
   int get hashCode => Object.hash(content, name);
 
   @override
-  String toString() => 'ChatMessage.developer($content)';
+  String toString() => 'ChatMessage.developer(content: $content, name: $name)';
 }
 
 /// A user message containing text, images, or audio.
@@ -259,6 +280,17 @@ class UserMessage extends ChatMessage {
     if (name != null) 'name': name,
   };
 
+  /// Creates a copy with the given fields replaced.
+  UserMessage copyWith({
+    UserMessageContent? content,
+    Object? name = unsetCopyWithValue,
+  }) {
+    return UserMessage(
+      content: content ?? this.content,
+      name: name == unsetCopyWithValue ? this.name : name as String?,
+    );
+  }
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -272,9 +304,10 @@ class UserMessage extends ChatMessage {
 
   @override
   String toString() => switch (content) {
-    UserTextContent(:final text) => 'ChatMessage.user($text)',
+    UserTextContent(:final text) =>
+      'ChatMessage.user(content: $text, name: $name)',
     UserPartsContent(:final parts) =>
-      'ChatMessage.user([${parts.length} parts])',
+      'ChatMessage.user(content: [${parts.length} parts], name: $name)',
   };
 }
 
@@ -407,20 +440,10 @@ class AssistantMessage extends ChatMessage {
           content == other.content &&
           name == other.name &&
           refusal == other.refusal &&
-          _listEquals(toolCalls, other.toolCalls) &&
+          listsEqual(toolCalls, other.toolCalls) &&
           reasoningContent == other.reasoningContent &&
           reasoning == other.reasoning &&
-          _listEquals(reasoningDetails, other.reasoningDetails);
-
-  bool _listEquals<T>(List<T>? a, List<T>? b) {
-    if (a == null && b == null) return true;
-    if (a == null || b == null) return false;
-    if (a.length != b.length) return false;
-    for (var i = 0; i < a.length; i++) {
-      if (a[i] != b[i]) return false;
-    }
-    return true;
-  }
+          listsEqual(reasoningDetails, other.reasoningDetails);
 
   @override
   int get hashCode => Object.hash(
@@ -432,6 +455,39 @@ class AssistantMessage extends ChatMessage {
     reasoning,
     reasoningDetails != null ? Object.hashAll(reasoningDetails!) : null,
   );
+
+  /// Creates a copy with the given fields replaced.
+  AssistantMessage copyWith({
+    Object? content = unsetCopyWithValue,
+    Object? name = unsetCopyWithValue,
+    Object? refusal = unsetCopyWithValue,
+    Object? toolCalls = unsetCopyWithValue,
+    Object? reasoningContent = unsetCopyWithValue,
+    Object? reasoning = unsetCopyWithValue,
+    Object? reasoningDetails = unsetCopyWithValue,
+  }) {
+    return AssistantMessage(
+      content: content == unsetCopyWithValue
+          ? this.content
+          : content as String?,
+      name: name == unsetCopyWithValue ? this.name : name as String?,
+      refusal: refusal == unsetCopyWithValue
+          ? this.refusal
+          : refusal as String?,
+      toolCalls: toolCalls == unsetCopyWithValue
+          ? this.toolCalls
+          : toolCalls as List<ToolCall>?,
+      reasoningContent: reasoningContent == unsetCopyWithValue
+          ? this.reasoningContent
+          : reasoningContent as String?,
+      reasoning: reasoning == unsetCopyWithValue
+          ? this.reasoning
+          : reasoning as String?,
+      reasoningDetails: reasoningDetails == unsetCopyWithValue
+          ? this.reasoningDetails
+          : reasoningDetails as List<ReasoningDetail>?,
+    );
+  }
 
   @override
   String toString() {
@@ -487,6 +543,14 @@ class ToolMessage extends ChatMessage {
     'content': content,
   };
 
+  /// Creates a copy with the given fields replaced.
+  ToolMessage copyWith({String? toolCallId, String? content}) {
+    return ToolMessage(
+      toolCallId: toolCallId ?? this.toolCallId,
+      content: content ?? this.content,
+    );
+  }
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -499,5 +563,6 @@ class ToolMessage extends ChatMessage {
   int get hashCode => Object.hash(toolCallId, content);
 
   @override
-  String toString() => 'ChatMessage.tool($toolCallId)';
+  String toString() =>
+      'ChatMessage.tool(toolCallId: $toolCallId, content: $content)';
 }

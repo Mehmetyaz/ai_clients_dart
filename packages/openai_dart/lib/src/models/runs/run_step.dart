@@ -1,6 +1,7 @@
 import 'package:meta/meta.dart';
 
 import '../common/usage.dart';
+import '../responses/common/equality_helpers.dart';
 
 /// A step in a run's execution.
 ///
@@ -282,6 +283,9 @@ sealed class StepDetails {
     };
   }
 
+  /// The type of step detail.
+  String get type;
+
   /// Converts to JSON.
   Map<String, dynamic> toJson();
 }
@@ -300,6 +304,9 @@ class MessageCreationDetails implements StepDetails {
 
   /// The ID of the created message.
   final String messageId;
+
+  @override
+  String get type => 'message_creation';
 
   @override
   Map<String, dynamic> toJson() => {
@@ -340,21 +347,31 @@ class ToolCallsDetails implements StepDetails {
   final List<StepToolCall> toolCalls;
 
   @override
+  String get type => 'tool_calls';
+
+  @override
   Map<String, dynamic> toJson() => {
     'type': 'tool_calls',
     'tool_calls': toolCalls.map((tc) => tc.toJson()).toList(),
   };
 
+  /// Creates a copy with the given fields replaced.
+  ToolCallsDetails copyWith({List<StepToolCall>? toolCalls}) {
+    return ToolCallsDetails(toolCalls: toolCalls ?? this.toolCalls);
+  }
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is ToolCallsDetails && runtimeType == other.runtimeType;
+      other is ToolCallsDetails &&
+          runtimeType == other.runtimeType &&
+          listsEqual(toolCalls, other.toolCalls);
 
   @override
-  int get hashCode => toolCalls.length.hashCode;
+  int get hashCode => Object.hashAll(toolCalls);
 
   @override
-  String toString() => 'ToolCallsDetails(${toolCalls.length} calls)';
+  String toString() => 'ToolCallsDetails(toolCalls: $toolCalls)';
 }
 
 /// A tool call in a run step.
@@ -369,6 +386,9 @@ sealed class StepToolCall {
       _ => throw FormatException('Unknown tool call type: $type'),
     };
   }
+
+  /// The type of tool call.
+  String get type;
 
   /// Converts to JSON.
   Map<String, dynamic> toJson();
@@ -406,6 +426,9 @@ class CodeInterpreterStepCall implements StepToolCall {
   final List<CodeInterpreterOutput> outputs;
 
   @override
+  String get type => 'code_interpreter';
+
+  @override
   Map<String, dynamic> toJson() => {
     'id': id,
     'type': 'code_interpreter',
@@ -441,6 +464,9 @@ sealed class CodeInterpreterOutput {
     };
   }
 
+  /// The type of output.
+  String get type;
+
   /// Converts to JSON.
   Map<String, dynamic> toJson();
 }
@@ -460,18 +486,28 @@ class LogsOutput implements CodeInterpreterOutput {
   final String logs;
 
   @override
+  String get type => 'logs';
+
+  @override
   Map<String, dynamic> toJson() => {'type': 'logs', 'logs': logs};
+
+  /// Creates a copy with the given fields replaced.
+  LogsOutput copyWith({String? logs}) {
+    return LogsOutput(logs: logs ?? this.logs);
+  }
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is LogsOutput && runtimeType == other.runtimeType;
+      other is LogsOutput &&
+          runtimeType == other.runtimeType &&
+          logs == other.logs;
 
   @override
   int get hashCode => logs.hashCode;
 
   @override
-  String toString() => 'LogsOutput(${logs.length} chars)';
+  String toString() => 'LogsOutput(logs: $logs)';
 }
 
 /// Image output from code interpreter.
@@ -488,6 +524,9 @@ class ImageOutput implements CodeInterpreterOutput {
 
   /// The file ID of the image.
   final String fileId;
+
+  @override
+  String get type => 'image';
 
   @override
   Map<String, dynamic> toJson() => {
@@ -513,13 +552,13 @@ class ImageOutput implements CodeInterpreterOutput {
 @immutable
 class FileSearchStepCall implements StepToolCall {
   /// Creates a [FileSearchStepCall].
-  const FileSearchStepCall({required this.id, this.fileSearch});
+  const FileSearchStepCall({required this.id, required this.fileSearch});
 
   /// Creates a [FileSearchStepCall] from JSON.
   factory FileSearchStepCall.fromJson(Map<String, dynamic> json) {
     return FileSearchStepCall(
       id: json['id'] as String,
-      fileSearch: json['file_search'] as Map<String, dynamic>?,
+      fileSearch: json['file_search'] as Map<String, dynamic>,
     );
   }
 
@@ -527,27 +566,39 @@ class FileSearchStepCall implements StepToolCall {
   final String id;
 
   /// The file search results.
-  final Map<String, dynamic>? fileSearch;
+  final Map<String, dynamic> fileSearch;
+
+  @override
+  String get type => 'file_search';
 
   @override
   Map<String, dynamic> toJson() => {
     'id': id,
     'type': 'file_search',
-    if (fileSearch != null) 'file_search': fileSearch,
+    'file_search': fileSearch,
   };
+
+  /// Creates a copy with the given fields replaced.
+  FileSearchStepCall copyWith({String? id, Map<String, dynamic>? fileSearch}) {
+    return FileSearchStepCall(
+      id: id ?? this.id,
+      fileSearch: fileSearch ?? this.fileSearch,
+    );
+  }
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is FileSearchStepCall &&
           runtimeType == other.runtimeType &&
-          id == other.id;
+          id == other.id &&
+          mapsDeepEqual(fileSearch, other.fileSearch);
 
   @override
-  int get hashCode => id.hashCode;
+  int get hashCode => Object.hash(id, mapDeepHashCode(fileSearch));
 
   @override
-  String toString() => 'FileSearchStepCall(id: $id)';
+  String toString() => 'FileSearchStepCall(id: $id, fileSearch: $fileSearch)';
 }
 
 /// A function tool call.
@@ -583,6 +634,9 @@ class FunctionStepCall implements StepToolCall {
 
   /// The function output (after submission).
   final String? output;
+
+  @override
+  String get type => 'function';
 
   @override
   Map<String, dynamic> toJson() => {
