@@ -26,6 +26,13 @@ void main() {
         expect((content as TextContent).text, 'Hello world');
       });
 
+      test('deserializes partial content (content.start event)', () {
+        final json = {'type': 'text'};
+        final content = InteractionContent.fromJson(json);
+        expect(content, isA<TextContent>());
+        expect((content as TextContent).text, isNull);
+      });
+
       test('roundtrip serialization', () {
         const original = TextContent(text: 'Test message');
         final json = original.toJson();
@@ -240,9 +247,10 @@ void main() {
       test('creates with function result', () {
         const content = FunctionResultContent(
           callId: 'call-123',
-          result: {'temp': 72},
+          result: ToolResultObject({'temp': 72}),
         );
-        expect(content.result, {'temp': 72});
+        expect(content.result, isA<ToolResultObject>());
+        expect((content.result! as ToolResultObject).value, {'temp': 72});
         expect(content.callId, 'call-123');
         expect(content.type, 'function_result');
       });
@@ -250,7 +258,7 @@ void main() {
       test('serializes to JSON', () {
         const content = FunctionResultContent(
           callId: 'call-456',
-          result: {'results': <String>[]},
+          result: ToolResultObject({'results': <String>[]}),
           name: 'search',
         );
         final json = content.toJson();
@@ -289,10 +297,14 @@ void main() {
       test('deserializes from JSON', () {
         final json = {
           'type': 'code_execution_result',
-          'code_execution_result': {'outcome': 'success', 'output': 'hello'},
+          'call_id': 'call_123',
+          'result': 'hello',
         };
         final content = InteractionContent.fromJson(json);
         expect(content, isA<CodeExecutionResultContent>());
+        final result = content as CodeExecutionResultContent;
+        expect(result.callId, 'call_123');
+        expect(result.result, 'hello');
       });
     });
 
@@ -311,10 +323,12 @@ void main() {
       test('deserializes from JSON', () {
         final json = {
           'type': 'url_context_result',
-          'url_context_result': {'content': 'Page content here'},
+          'call_id': 'call_123',
+          'result': <dynamic>[],
         };
         final content = InteractionContent.fromJson(json);
         expect(content, isA<UrlContextResultContent>());
+        expect((content as UrlContextResultContent).callId, 'call_123');
       });
     });
 
@@ -333,14 +347,12 @@ void main() {
       test('deserializes from JSON', () {
         final json = {
           'type': 'google_search_result',
-          'google_search_result': {
-            'results': [
-              {'title': 'Result 1', 'url': 'https://example.com'},
-            ],
-          },
+          'call_id': 'call_123',
+          'result': <dynamic>[],
         };
         final content = InteractionContent.fromJson(json);
         expect(content, isA<GoogleSearchResultContent>());
+        expect((content as GoogleSearchResultContent).callId, 'call_123');
       });
     });
 
@@ -373,18 +385,27 @@ void main() {
       });
     });
 
+    group('FileSearchCallContent', () {
+      test('deserializes from JSON', () {
+        final json = {'type': 'file_search_call', 'id': 'call_123'};
+        final content = InteractionContent.fromJson(json);
+        expect(content, isA<FileSearchCallContent>());
+        expect((content as FileSearchCallContent).id, 'call_123');
+      });
+    });
+
     group('FileSearchResultContent', () {
       test('deserializes from JSON', () {
         final json = {
           'type': 'file_search_result',
-          'file_search_result': {
-            'chunks': [
-              {'text': 'Relevant content', 'score': 0.95},
-            ],
-          },
+          'call_id': 'call_123',
+          'result': [
+            {'text': 'Relevant content', 'file_search_store': 'store1'},
+          ],
         };
         final content = InteractionContent.fromJson(json);
         expect(content, isA<FileSearchResultContent>());
+        expect((content as FileSearchResultContent).callId, 'call_123');
       });
     });
 
@@ -397,7 +418,7 @@ void main() {
         );
       });
 
-      test('all 17 content variants can be deserialized', () {
+      test('all 18 content variants can be deserialized', () {
         final variants = <Map<String, dynamic>>[
           {'type': 'text', 'text': 'test'},
           {'type': 'image', 'data': 'data'},
@@ -422,12 +443,14 @@ void main() {
           },
           {
             'type': 'code_execution_result',
-            'code_execution_result': <String, dynamic>{},
+            'call_id': 'id',
+            'result': 'output',
           },
           {'type': 'url_context_call', 'url_context_call': <String, dynamic>{}},
           {
             'type': 'url_context_result',
-            'url_context_result': <String, dynamic>{},
+            'call_id': 'id',
+            'result': <dynamic>[],
           },
           {
             'type': 'google_search_call',
@@ -435,7 +458,8 @@ void main() {
           },
           {
             'type': 'google_search_result',
-            'google_search_result': <String, dynamic>{},
+            'call_id': 'id',
+            'result': <dynamic>[],
           },
           {
             'type': 'mcp_server_tool_call',
@@ -448,10 +472,8 @@ void main() {
             'type': 'mcp_server_tool_result',
             'mcp_server_tool_result': <String, dynamic>{},
           },
-          {
-            'type': 'file_search_result',
-            'file_search_result': <String, dynamic>{},
-          },
+          {'type': 'file_search_call', 'id': 'call_123'},
+          {'type': 'file_search_result', 'call_id': 'call_123'},
         ];
 
         for (final json in variants) {
@@ -459,6 +481,38 @@ void main() {
             () => InteractionContent.fromJson(json),
             returnsNormally,
             reason: 'Failed for type: ${json['type']}',
+          );
+        }
+      });
+
+      test('all 18 content variants handle partial JSON (content.start)', () {
+        // content.start events send only {"type": "..."} without data fields
+        final types = [
+          'text',
+          'image',
+          'audio',
+          'document',
+          'video',
+          'thought',
+          'function_call',
+          'function_result',
+          'code_execution_call',
+          'code_execution_result',
+          'url_context_call',
+          'url_context_result',
+          'google_search_call',
+          'google_search_result',
+          'mcp_server_tool_call',
+          'mcp_server_tool_result',
+          'file_search_call',
+          'file_search_result',
+        ];
+
+        for (final type in types) {
+          expect(
+            () => InteractionContent.fromJson({'type': type}),
+            returnsNormally,
+            reason: 'Partial JSON failed for type: $type',
           );
         }
       });

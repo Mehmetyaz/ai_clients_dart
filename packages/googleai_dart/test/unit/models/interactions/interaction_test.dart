@@ -55,6 +55,7 @@ void main() {
           'completed': InteractionStatus.completed,
           'failed': InteractionStatus.failed,
           'cancelled': InteractionStatus.cancelled,
+          'incomplete': InteractionStatus.incomplete,
         };
 
         for (final entry in statuses.entries) {
@@ -258,6 +259,10 @@ void main() {
         InteractionStatus.fromString('cancelled'),
         InteractionStatus.cancelled,
       );
+      expect(
+        InteractionStatus.fromString('incomplete'),
+        InteractionStatus.incomplete,
+      );
     });
 
     test('fromString returns default for unknown value', () {
@@ -274,6 +279,7 @@ void main() {
       expect(InteractionStatus.completed.toJson(), 'completed');
       expect(InteractionStatus.failed.toJson(), 'failed');
       expect(InteractionStatus.cancelled.toJson(), 'cancelled');
+      expect(InteractionStatus.incomplete.toJson(), 'incomplete');
     });
   });
 
@@ -283,7 +289,7 @@ void main() {
         'total_input_tokens': 100,
         'total_output_tokens': 50,
         'total_tokens': 150,
-        'total_reasoning_tokens': 20,
+        'total_thought_tokens': 20,
         'total_tool_use_tokens': 10,
         'total_cached_tokens': 5,
         'input_tokens_by_modality': [
@@ -297,7 +303,7 @@ void main() {
       expect(usage.totalInputTokens, 100);
       expect(usage.totalOutputTokens, 50);
       expect(usage.totalTokens, 150);
-      expect(usage.totalReasoningTokens, 20);
+      expect(usage.totalThoughtTokens, 20);
       expect(usage.totalToolUseTokens, 10);
       expect(usage.totalCachedTokens, 5);
       expect(usage.inputTokensByModality, isNotNull);
@@ -328,8 +334,10 @@ void main() {
 
       expect(turn.role, 'user');
       expect(turn.content, isNotNull);
-      expect(turn.content, isA<List<dynamic>>());
-      expect((turn.content! as List<dynamic>).length, 1);
+      expect(turn.content, isA<TurnContentList>());
+      final contentList = turn.content! as TurnContentList;
+      expect(contentList.content.length, 1);
+      expect(contentList.content.first, isA<TextContent>());
     });
 
     test('fromJson with text string', () {
@@ -338,13 +346,14 @@ void main() {
       final turn = Turn.fromJson(json);
 
       expect(turn.role, 'user');
-      expect(turn.content, 'Hello');
+      expect(turn.content, isA<TurnTextContent>());
+      expect((turn.content! as TurnTextContent).text, 'Hello');
     });
 
     test('toJson with content list', () {
       const turn = Turn(
         role: 'model',
-        content: [TextContent(text: 'Response')],
+        content: TurnContentList([TextContent(text: 'Response')]),
       );
 
       final json = turn.toJson();
@@ -355,10 +364,20 @@ void main() {
     });
 
     test('Turn.text factory', () {
-      const turn = Turn.text(role: 'user', text: 'Hello');
+      final turn = Turn.text(role: 'user', text: 'Hello');
 
       expect(turn.role, 'user');
-      expect(turn.content, 'Hello');
+      expect(turn.content, isA<TurnTextContent>());
+      expect((turn.content! as TurnTextContent).text, 'Hello');
+    });
+
+    test('copyWith preserves TurnContent type', () {
+      final turn = Turn.text(role: 'user', text: 'Hello');
+      final copy = turn.copyWith(role: 'model');
+
+      expect(copy.role, 'model');
+      expect(copy.content, isA<TurnTextContent>());
+      expect((copy.content! as TurnTextContent).text, 'Hello');
     });
   });
 
