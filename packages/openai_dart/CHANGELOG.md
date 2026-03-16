@@ -1,3 +1,12 @@
+## 2.0.0
+
+> Note: This release has breaking changes.
+
+Made non-streaming response parsing robust for third-party OpenAI-compatible providers (AWS Bedrock proxies, Ollama, vLLM, TogetherAI, OpenRouter, etc.) by relaxing strict casts in `fromJson` while keeping constructor invariants strict. Added `ResponseStreamExtensions` for convenient stream event filtering/mapping, `copyWith` methods to all `ResponseStreamEvent` subtypes and `ChatMessage`/`ContentPart`, and updated `RunStep`, `Message`, `Tool`, and `EmbeddingRequest` models with additional fields from the latest API spec.
+
+- **BREAKING** **FEAT**: Make parsing robust for third-party OpenAI-compatible APIs ([#110](https://github.com/davidmigloz/ai_clients_dart/issues/110)). ([3c3b2853](https://github.com/davidmigloz/ai_clients_dart/commit/3c3b285348b4509284302bbde358e8a99f35ca42))
+- **FEAT**: Add copyWith, streaming extensions, and model improvements ([#108](https://github.com/davidmigloz/ai_clients_dart/issues/108)). ([b12109b2](https://github.com/davidmigloz/ai_clients_dart/commit/b12109b23efeb953fa698b0e4cffd84e381213ed))
+
 ## 1.4.0
 
 This release improves streaming error handling by detecting and surfacing errors embedded in chat and other streaming responses. It also updates model references to the latest `gpt-realtime-1.5` and `gpt-audio-1.5` models, and documents WebRTC support for the Realtime API.

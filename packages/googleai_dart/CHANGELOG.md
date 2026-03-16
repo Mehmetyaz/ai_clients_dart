@@ -1,3 +1,10 @@
+## 3.6.0
+
+Updated Interactions API with new content types (file search call, image config) and improved model fields. Also fixed interactions streaming by moving the `stream` flag from a query parameter to the request body, matching the official Python SDK behavior.
+
+- **FEAT**: Update interactions API models ([#107](https://github.com/davidmigloz/ai_clients_dart/issues/107)). ([21677923](https://github.com/davidmigloz/ai_clients_dart/commit/21677923ba9c47b3a6fe7e32fa30370f87f417b2))
+- **FIX**: Move stream flag to request body for interactions streaming ([#111](https://github.com/davidmigloz/ai_clients_dart/issues/111)). ([c8e8f133](https://github.com/davidmigloz/ai_clients_dart/commit/c8e8f133aa4dce368769f34eb99e44fc29f976a3))
+
 ## 3.5.0
 
 Updated to the latest Google AI API spec with new model types (grounding metadata, model info, and image models) and added [Gemini Embedding 2](https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-embedding-2/) support.

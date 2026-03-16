@@ -1,3 +1,9 @@
+## 1.3.2
+
+Complete `McpToolset.toString()` to include all fields (`authorizationToken`, `cacheControl`) that were previously missing.
+
+- **FIX**: Complete toString() and update spec metadata ([#103](https://github.com/davidmigloz/ai_clients_dart/issues/103)). ([7b316954](https://github.com/davidmigloz/ai_clients_dart/commit/7b31695482d0077e08942ed06bfcfa4d7ba9ff4e))
+
 ## 1.3.1
 
 Fixed verification warnings in generated model classes.

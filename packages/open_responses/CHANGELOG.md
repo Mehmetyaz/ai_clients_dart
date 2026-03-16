@@ -1,3 +1,9 @@
+## 0.1.5
+
+Added `StreamingEventAccumulator` for assembling streamed response events into a complete response, convenience factories on `Item` for creating common message types (`userMessage`, `assistantMessage`, `functionCall`, etc.), and type-safe `ResponseInput` for building request input with compile-time safety. Also added `copyWith` methods to streaming events and several model classes.
+
+- **FEAT**: Add streaming accumulator, convenience factories, and type-safe input ([#109](https://github.com/davidmigloz/ai_clients_dart/issues/109)). ([61ffa87c](https://github.com/davidmigloz/ai_clients_dart/commit/61ffa87cfda05bd884d41c230f6f9e276cc053dd))
+
 ## 0.1.4
 
 This release adds inline streaming error detection for improved reliability when handling streamed responses.
