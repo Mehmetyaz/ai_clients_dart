@@ -39,3 +39,16 @@ abstract class ResourceBase {
     this.streamClientFactory,
   });
 }
+
+/// Extracts a human-readable error message from a JSON error response.
+///
+/// Handles both flat `{message: "..."}` (custom proxies) and nested
+/// `{error: {message: "..."}}` (OpenAI-style) shapes.
+String extractErrorMessage(Map<String, dynamic> json) {
+  final message = json['message'];
+  if (message != null) return message.toString();
+  final error = json['error'];
+  if (error is Map) return (error['message'] ?? error).toString();
+  if (error != null) return error.toString();
+  return 'unknown error';
+}

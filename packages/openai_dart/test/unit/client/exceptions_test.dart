@@ -189,6 +189,16 @@ void main() {
 
       expect(exception.responseBody, '{"invalid": json}');
     });
+
+    test('includes cause when provided', () {
+      final cause = TypeError();
+      final exception = ParseException(
+        message: 'Failed to parse',
+        cause: cause,
+      );
+
+      expect(exception.cause, cause);
+    });
   });
 
   group('StreamException', () {
