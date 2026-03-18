@@ -63,6 +63,9 @@ from .dart_inspect import (
 
 
 HTTP_METHODS = ("get", "post", "put", "patch", "delete", "head", "options", "trace")
+# Built-in OpenAPI/JSON Schema type names. Any bare string NOT in this set is
+# treated as a schema reference (e.g. "Tool", "Content") rather than a primitive.
+_OPENAPI_BUILTIN_TYPES = frozenset({"string", "integer", "number", "boolean", "array", "object", "null"})
 UNKNOWN_ENUM_FALLBACKS = {"unknown", "unspecified"}
 MAX_VERSION_HISTORY = 10
 VERSION_SEGMENT_RE = re.compile(r"^v\d+")
@@ -756,9 +759,15 @@ def _flatten_union_branches(branches: list[dict[str, Any]]) -> list[dict[str, An
 
 
 def _parse_openapi_property(prop: dict[str, Any], required: set[str], name: str) -> dict[str, Any]:
+    raw_type = prop.get("type")
+    # OpenAPI 3.1 allows type to be a list (e.g. ["integer", "null"]).
+    # Presence of "null" in the list means the field's value may be null;
+    # required-ness is determined solely by the schema's required list.
+    type_list_has_null = isinstance(raw_type, list) and "null" in raw_type
     info: dict[str, Any] = {
         "required": name in required,
-        "type": prop.get("type"),
+        "nullable": type_list_has_null,  # value can be null (orthogonal to required)
+        "type": raw_type,
         "ref": None,
         "items": prop.get("items"),
         "union_refs": [],
@@ -771,7 +780,7 @@ def _parse_openapi_property(prop: dict[str, Any], required: set[str], name: str)
     if "anyOf" in prop:
         non_null = [_resolve_union_branch(item) for item in prop["anyOf"] if item.get("type") != "null"]
         if any(item.get("type") == "null" for item in prop["anyOf"]):
-            info["required"] = False
+            info["nullable"] = True
         # Flatten nested oneOf/anyOf wrappers before counting branches so that
         # anyOf: [{oneOf: [A, B]}, null] is recognised as a 2-branch union.
         # union_branch_count uses len(flat) so indeterminate allOf leaves are
@@ -791,7 +800,7 @@ def _parse_openapi_property(prop: dict[str, Any], required: set[str], name: str)
     if "oneOf" in prop:
         non_null = [_resolve_union_branch(item) for item in prop["oneOf"] if item.get("type") != "null"]
         if any(item.get("type") == "null" for item in prop["oneOf"]):
-            info["required"] = False
+            info["nullable"] = True
         flat = _flatten_union_branches(non_null)
         info["union_refs"] = [_resolve_ref(item["$ref"]) for item in flat if "$ref" in item]
         info["union_types"] = [item.get("type") for item in flat if "type" in item and "$ref" not in item]
@@ -813,6 +822,21 @@ def _parse_openapi_property(prop: dict[str, Any], required: set[str], name: str)
                 info["ref"] = _resolve_ref(item["$ref"])
                 break
     return info
+
+
+def _resolve_openapi31_type(type_value: Any) -> str | None:
+    """Normalize an OpenAPI 3.1 type value to a scalar string.
+
+    OpenAPI 3.1 allows ``type`` to be a list (e.g. ``["integer", "null"]``).
+    Returns the single non-null type if there is exactly one, otherwise None.
+    Scalar strings (OpenAPI 3.0 style) are returned as-is.
+    """
+    if isinstance(type_value, str):
+        return type_value
+    if not isinstance(type_value, list):
+        return None
+    non_null = [t for t in type_value if t != "null"]
+    return non_null[0] if len(non_null) == 1 else None
 
 
 def _expected_dart_type(
@@ -846,6 +870,13 @@ def _expected_dart_type(
         return ref_name
 
     spec_type = prop_info.get("type")
+    # OpenAPI 3.1 allows type to be a list (e.g. ["integer", "null"]).
+    # 2+ non-null entries is a union; a single non-null entry is a nullable scalar.
+    if isinstance(spec_type, list):
+        non_null = [t for t in spec_type if t != "null"]
+        if len(non_null) >= 2:
+            return "__union__"
+        spec_type = _resolve_openapi31_type(spec_type)
     type_mappings = config.manifest.type_mappings
     if spec_type and spec_type in type_mappings:
         # Inline objects (type: "object" without $ref) are indeterminate —
@@ -857,6 +888,12 @@ def _expected_dart_type(
             if not items:
                 return None  # untyped array — indeterminate
             container = type_mappings["array"]
+            # Websocket schemas may express items as a bare string — either a
+            # primitive type name (e.g. "string") or a schema reference (e.g.
+            # "Tool"). Normalize to a dict using the appropriate key so that the
+            # ref-lookup path in _expected_dart_type can resolve schema references.
+            if isinstance(items, str):
+                items = {"type": items} if items in _OPENAPI_BUILTIN_TYPES else {"$ref": items}
             # Parse the items schema through _parse_openapi_property so that
             # anyOf/oneOf/allOf wrappers on item schemas (e.g. anyOf: [{$ref: Foo}, null])
             # are fully unwrapped before the recursive type resolution.
@@ -1035,7 +1072,7 @@ def _type_issues_for_field(
             issues.append(_type_issue(
                 "warning", entry_key,
                 f"Property '{name}' is typed as '{actual}' but spec defines a "
-                f"union (oneOf/anyOf) — consider a sealed Dart type",
+                f"union (oneOf/anyOf/type-list) — consider a sealed Dart type",
                 file=entry_file,
             ))
     elif "<__union__>" in expected_type:
@@ -1141,6 +1178,8 @@ def _verify_field_types(
     entry: ManifestEntry,
 ) -> list[dict[str, Any]]:
     """Run only type-comparison checks on an entry's fields (no missing-field or method checks)."""
+    if not entry.file:
+        return []
     file_path = config.resolve_package_path(entry.file)
     if not file_path.exists():
         return []
@@ -1223,8 +1262,9 @@ def _verify_object_entry(config: ToolkitConfig, spec_payload: dict[str, Any], en
             continue
         dart_field = fields.get(field_name)
         required = bool(prop.get("required", False))
+        nullable = bool(prop.get("nullable", False))
         if dart_field is not None:
-            if required and dart_field.is_nullable:
+            if required and not nullable and dart_field.is_nullable:
                 issues.append(_type_issue("error", entry.key, f"Property '{name}' is required in spec but nullable in Dart", file=entry.file))
             if not required and not dart_field.is_nullable and config.manifest.surface == "openapi":
                 issues.append(_type_issue("info", entry.key, f"Property '{name}' is optional in spec but non-nullable in Dart", file=entry.file))
@@ -3097,19 +3137,35 @@ def _scaffold_enum_source(class_name: str, values: list[str]) -> str:
 def _dart_type_from_prop(type_mappings: dict[str, str], prop: dict[str, Any]) -> str:
     if prop.get("ref"):
         return prop["ref"]
-    type_name = prop.get("type")
+    # OpenAPI 3.1 allows type to be a list; normalize to a scalar (None for multi-type unions).
+    type_name = _resolve_openapi31_type(prop.get("type"))
     if type_name == "array":
         items = prop.get("items", {})
+        if isinstance(items, str):
+            items = {"type": items} if items in _OPENAPI_BUILTIN_TYPES else {"$ref": items}
         if "$ref" in items:
             return f"List<{_resolve_ref(items['$ref'])}>"
-        return f"List<{type_mappings.get(items.get('type', 'dynamic'), 'dynamic')}>"
+        item_type = _resolve_openapi31_type(items.get("type", "dynamic")) or "dynamic"
+        return f"List<{type_mappings.get(item_type, 'dynamic')}>"
     if type_name == "object":
         return "Map<String, dynamic>"
     return type_mappings.get(type_name, type_name or "dynamic")
 
 
+def _is_scaffold_nonnull(prop: dict[str, Any]) -> bool:
+    """Return True iff scaffold should generate a non-nullable Dart field/expression.
+
+    A field is non-nullable only when it is required (must be present) AND not nullable
+    (value cannot be null). A required-but-nullable field (e.g. anyOf: [T, null] in required)
+    must still generate nullable Dart types and null-guards in fromJson.
+    """
+    return bool(prop.get("required")) and not bool(prop.get("nullable", False))
+
+
 def _scaffold_array_from_json(field_name: str, prop: dict[str, Any], type_mappings: dict[str, str]) -> str:
     items = prop.get("items") or {}
+    if isinstance(items, str):
+        items = {"type": items} if items in _OPENAPI_BUILTIN_TYPES else {"$ref": items}
     value = f"json['{field_name}']"
     if "$ref" in items:
         ref_type = _resolve_ref(items["$ref"])
@@ -3118,7 +3174,7 @@ def _scaffold_array_from_json(field_name: str, prop: dict[str, Any], type_mappin
             f"{ref_type}.fromJson(item as Map<String, dynamic>)).toList()"
         )
     else:
-        item_type = items.get("type")
+        item_type = _resolve_openapi31_type(items.get("type"))
         if not item_type:
             return "TODO()"
         if item_type == "number":
@@ -3129,7 +3185,7 @@ def _scaffold_array_from_json(field_name: str, prop: dict[str, Any], type_mappin
                 expression = f"({value} as List<dynamic>).toList()"
             else:
                 expression = f"({value} as List<dynamic>).map((item) => item as {dart_item_type}).toList()"
-    if prop.get("required"):
+    if _is_scaffold_nonnull(prop):
         return expression
     return f"{value} != null ? {expression} : null"
 
@@ -3137,31 +3193,40 @@ def _scaffold_array_from_json(field_name: str, prop: dict[str, Any], type_mappin
 def _scaffold_from_json_expression(field_name: str, prop: dict[str, Any], type_mappings: dict[str, str]) -> str:
     dart_type = _dart_type_from_prop(type_mappings, prop)
     value = f"json['{field_name}']"
-    if prop.get("type") == "array":
+    if _resolve_openapi31_type(prop.get("type")) == "array":
         return _scaffold_array_from_json(field_name, prop, type_mappings)
     if prop.get("ref"):
-        if prop.get("required"):
+        if _is_scaffold_nonnull(prop):
             return f"{dart_type}.fromJson({value} as Map<String, dynamic>)"
         return f"{value} != null ? {dart_type}.fromJson({value} as Map<String, dynamic>) : null"
     if dart_type == "double":
-        if prop.get("required"):
+        if _is_scaffold_nonnull(prop):
             return f"({value} as num).toDouble()"
         return f"{value} != null ? ({value} as num).toDouble() : null"
-    suffix = "" if prop.get("required") else "?"
+    suffix = "" if _is_scaffold_nonnull(prop) else "?"
     return f"{value} as {dart_type}{suffix}"
 
 
 def _scaffold_to_json_expression(field_name: str, prop: dict[str, Any], type_mappings: dict[str, str]) -> str:
     field = camel_case(field_name)
-    if prop.get("type") == "array":
+    nonnull = _is_scaffold_nonnull(prop)
+    # Use null-aware operator only when required+nullable: the field is non-None in the
+    # spec sense (must be present) but its value can be null. Plain optional fields
+    # (required=False) are post-processed by _scaffold_nullable_to_json_expression.
+    null_aware = not nonnull and bool(prop.get("required"))
+    if _resolve_openapi31_type(prop.get("type")) == "array":
         items = prop.get("items") or {}
+        if isinstance(items, str):
+            items = {"type": items} if items in _OPENAPI_BUILTIN_TYPES else {"$ref": items}
         if "$ref" in items:
-            return f"{field}.map((item) => item.toJson()).toList()"
+            dot = "?." if null_aware else "."
+            return f"{field}{dot}map((item) => item.toJson()).toList()"
         if items.get("type"):
             return field
         return "TODO()"
     if prop.get("ref"):
-        return f"{field}.toJson()"
+        dot = "?." if null_aware else "."
+        return f"{field}{dot}toJson()"
     return field
 
 
@@ -3189,7 +3254,7 @@ def _scaffold_class_source(class_name: str, props: dict[str, dict[str, Any]], ty
     ]
     for name, prop in props.items():
         dart_type = _dart_type_from_prop(type_mappings, prop)
-        suffix = "" if prop.get("required") else "?"
+        suffix = "" if _is_scaffold_nonnull(prop) else "?"
         lines.append(f"  final {dart_type}{suffix} {camel_case(name)};")
     lines.append("")
     lines.append(f"  const {class_name}({{")
@@ -3230,7 +3295,7 @@ def _scaffold_class_source(class_name: str, props: dict[str, dict[str, Any]], ty
     for name, prop in props.items():
         field = camel_case(name)
         dart_type = _dart_type_from_prop(type_mappings, prop)
-        if prop.get("required"):
+        if _is_scaffold_nonnull(prop):
             lines.append(
                 f"      {field}: {field} == _unsetCopyWithValue ? this.{field} : {field}! as {dart_type},"
             )

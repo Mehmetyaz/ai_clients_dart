@@ -6071,6 +6071,420 @@ class ApiToolkitCommandTests(unittest.TestCase):
             self.assertIn("List<List<SomeSealedType>>", info_issues[0]["message"],
                           f"Expected full nested suggestion in: {info_issues[0]['message']}")
 
+    def test_verify_type_openapi31_list_type_nullable_scalar(self) -> None:
+        """OpenAPI 3.1 type: ['integer', 'null'] resolves to the mapped Dart type (int)."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            config_dir = self._setup_type_check_env(root,
+                spec_schemas={
+                    "Example": {
+                        "type": "object",
+                        "properties": {
+                            "count": {"type": ["integer", "null"]},
+                        },
+                    },
+                },
+                manifest_types={
+                    "Example": {"spec": "main", "kind": "object", "dart_class": "Example", "file": "lib/src/models/common/example.dart", "schema": "Example"},
+                },
+                dart_files={
+                    "lib/src/models/common/example.dart": self._make_dart_class("Example", [("count", "int", True)]),
+                },
+            )
+            _, payload = command_verify(
+                SimpleNamespace(config_dir=config_dir, spec_name=None, checks="implementation", scope="all", type_name=None, baseline=None, git_ref=None)
+            )
+            issues = payload["results"]["implementation"]["issues"]
+            # Filter to type-mismatch issues only (exclude method-coverage warnings)
+            type_issues = [i for i in issues if i.get("name") == "Example"
+                           and i["level"] in ("warning", "error")
+                           and "typed as" in i.get("message", "")]
+            self.assertEqual(type_issues, [], f"Expected no type warnings for int? field with type=['integer','null']: {type_issues}")
+
+    def test_verify_type_openapi31_list_type_null_makes_field_nullable(self) -> None:
+        """OpenAPI 3.1 type: ['integer', 'null'] must not emit 'required but nullable' error even when the field is in required."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            config_dir = self._setup_type_check_env(root,
+                spec_schemas={
+                    "Example": {
+                        "type": "object",
+                        "required": ["count"],
+                        "properties": {
+                            "count": {"type": ["integer", "null"]},
+                        },
+                    },
+                },
+                manifest_types={
+                    "Example": {"spec": "main", "kind": "object", "dart_class": "Example", "file": "lib/src/models/common/example.dart", "schema": "Example"},
+                },
+                dart_files={
+                    "lib/src/models/common/example.dart": self._make_dart_class("Example", [("count", "int", True)]),
+                },
+            )
+            _, payload = command_verify(
+                SimpleNamespace(config_dir=config_dir, spec_name=None, checks="implementation", scope="all", type_name=None, baseline=None, git_ref=None)
+            )
+            issues = payload["results"]["implementation"]["issues"]
+            # Must not produce "required in spec but nullable in Dart" error
+            required_errors = [i for i in issues if i.get("name") == "Example"
+                               and i["level"] == "error"
+                               and "required" in i.get("message", "").lower()]
+            self.assertEqual(required_errors, [], f"Expected no required/nullable error for type=['integer','null']: {required_errors}")
+
+    def test_verify_type_openapi31_list_type_union_warns_object(self) -> None:
+        """OpenAPI 3.1 type: ['string', 'integer'] (2+ non-null) is treated as a union; Object? should warn."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            config_dir = self._setup_type_check_env(root,
+                spec_schemas={
+                    "Example": {
+                        "type": "object",
+                        "properties": {
+                            "value": {"type": ["string", "integer"]},
+                        },
+                    },
+                },
+                manifest_types={
+                    "Example": {"spec": "main", "kind": "object", "dart_class": "Example", "file": "lib/src/models/common/example.dart", "schema": "Example"},
+                },
+                dart_files={
+                    "lib/src/models/common/example.dart": self._make_dart_class("Example", [("value", "Object", True)]),
+                },
+            )
+            _, payload = command_verify(
+                SimpleNamespace(config_dir=config_dir, spec_name=None, checks="implementation", scope="all", type_name=None, baseline=None, git_ref=None)
+            )
+            issues = payload["results"]["implementation"]["issues"]
+            warnings = [i for i in issues if i.get("name") == "Example" and i["level"] == "warning"]
+            self.assertTrue(any("union" in i["message"].lower() or "sealed" in i["message"].lower() for i in warnings),
+                            f"Expected union/sealed warning for Object? with type=['string','integer']: {warnings}")
+
+    def test_verify_type_websocket_string_items_no_crash(self) -> None:
+        """OpenAPI schema with array items as a bare string (e.g. 'string') must not crash.
+
+        This covers the same normalization path as WebSocket schemas, which also
+        express array item types as bare strings rather than schema objects.
+        """
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            config_dir = self._setup_type_check_env(root,
+                spec_schemas={
+                    "Example": {
+                        "type": "object",
+                        "properties": {
+                            "tags": {"type": "array", "items": "string"},
+                        },
+                    },
+                },
+                manifest_types={
+                    "Example": {"spec": "main", "kind": "object", "dart_class": "Example", "file": "lib/src/models/common/example.dart", "schema": "Example"},
+                },
+                dart_files={
+                    "lib/src/models/common/example.dart": self._make_dart_class("Example", [("tags", "List<String>", True)]),
+                },
+            )
+            # Must not raise; result should contain no type-mismatch issues for Example
+            _, payload = command_verify(
+                SimpleNamespace(config_dir=config_dir, spec_name=None, checks="implementation", scope="all", type_name=None, baseline=None, git_ref=None)
+            )
+            issues = payload["results"]["implementation"]["issues"]
+            errors = [i for i in issues if i.get("name") == "Example" and i["level"] == "error"]
+            self.assertEqual(errors, [], f"Expected no errors for List<String> with items='string': {errors}")
+
+    def test_verify_field_types_null_file_no_crash(self) -> None:
+        """_verify_field_types on a skip entry with schema but file=null must not crash."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            config_dir = self._setup_type_check_env(root,
+                spec_schemas={
+                    "Orphan": {
+                        "type": "object",
+                        "properties": {"id": {"type": "string"}},
+                    },
+                },
+                manifest_types={
+                    "Orphan": {"spec": "main", "kind": "skip", "dart_class": None, "file": None, "schema": "Orphan"},
+                },
+                dart_files={},
+            )
+            # Must not raise; skip entry with null file returns no issues
+            _, payload = command_verify(
+                SimpleNamespace(config_dir=config_dir, spec_name=None, checks="implementation", scope="all", type_name=None, baseline=None, git_ref=None)
+            )
+            issues = payload["results"]["implementation"]["issues"]
+            errors = [i for i in issues if i.get("name") == "Orphan" and i["level"] == "error"]
+            self.assertEqual(errors, [], f"Expected no errors for skip entry with null file: {errors}")
+
+    def test_verify_type_websocket_schema_ref_items_resolves(self) -> None:
+        """Websocket bare-string array items that are schema references (e.g. 'Tool') resolve via $ref path."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            config_dir = self._setup_type_check_env(root,
+                spec_schemas={
+                    "Tool": {"type": "object", "properties": {"name": {"type": "string"}}},
+                    "Example": {
+                        "type": "object",
+                        "properties": {
+                            "tools": {"type": "array", "items": "Tool"},
+                        },
+                    },
+                },
+                manifest_types={
+                    "Tool": {"spec": "main", "kind": "object", "dart_class": "Tool", "file": "lib/src/models/common/tool.dart", "schema": "Tool"},
+                    "Example": {"spec": "main", "kind": "object", "dart_class": "Example", "file": "lib/src/models/common/example.dart", "schema": "Example"},
+                },
+                dart_files={
+                    "lib/src/models/common/tool.dart": self._make_dart_class("Tool", [("name", "String", True)]),
+                    # Object? — should produce a type warning since spec expects List<Tool>
+                    "lib/src/models/common/example.dart": self._make_dart_class("Example", [("tools", "Object", True)]),
+                },
+            )
+            _, payload = command_verify(
+                SimpleNamespace(config_dir=config_dir, spec_name=None, checks="implementation", scope="all", type_name=None, baseline=None, git_ref=None)
+            )
+            issues = payload["results"]["implementation"]["issues"]
+            # Should warn that tools is Object but spec expects List<Tool>
+            type_issues = [i for i in issues if i.get("name") == "Example" and i["level"] in ("warning", "info")
+                           and "tools" in i.get("message", "")]
+            self.assertTrue(len(type_issues) >= 1,
+                            f"Expected type issue for Object? when spec ref items='Tool': {issues}")
+
+    def test_verify_type_openapi31_nullable_required_no_spurious_optional_info(self) -> None:
+        """type: ['integer', 'null'] in required must not produce 'optional but non-nullable' info for a non-nullable Dart field."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            config_dir = self._setup_type_check_env(root,
+                spec_schemas={
+                    "Example": {
+                        "type": "object",
+                        "required": ["count"],
+                        "properties": {
+                            "count": {"type": ["integer", "null"]},
+                        },
+                    },
+                },
+                manifest_types={
+                    "Example": {"spec": "main", "kind": "object", "dart_class": "Example", "file": "lib/src/models/common/example.dart", "schema": "Example"},
+                },
+                dart_files={
+                    "lib/src/models/common/example.dart": self._make_dart_class("Example", [("count", "int", False)]),
+                },
+            )
+            _, payload = command_verify(
+                SimpleNamespace(config_dir=config_dir, spec_name=None, checks="implementation", scope="all", type_name=None, baseline=None, git_ref=None)
+            )
+            issues = payload["results"]["implementation"]["issues"]
+            # Must not produce "optional in spec but non-nullable in Dart" info
+            optional_infos = [i for i in issues if i.get("name") == "Example"
+                              and i["level"] == "info"
+                              and "optional" in i.get("message", "").lower()]
+            self.assertEqual(optional_infos, [], f"Expected no spurious optional-info for nullable required field: {optional_infos}")
+
+    def test_scaffold_from_json_array_null_list_type(self) -> None:
+        """_scaffold_from_json_expression must handle type: ['array', 'null'] without crashing."""
+        from api_toolkit.operations import _scaffold_from_json_expression
+        type_mappings = {"string": "String", "integer": "int", "array": "List"}
+        prop = {
+            "type": ["array", "null"],
+            "items": {"type": "string"},
+            "required": False,
+        }
+        result = _scaffold_from_json_expression("tags", prop, type_mappings)
+        # Must not crash and should delegate to array scaffold
+        self.assertIn("List", result)
+
+    def test_scaffold_to_json_array_null_list_type(self) -> None:
+        """_scaffold_to_json_expression must handle type: ['array', 'null'] without crashing."""
+        from api_toolkit.operations import _scaffold_to_json_expression
+        type_mappings = {"string": "String", "integer": "int", "array": "List"}
+        prop = {
+            "type": ["array", "null"],
+            "items": {"type": "string"},
+            "required": False,
+        }
+        result = _scaffold_to_json_expression("tags", prop, type_mappings)
+        # Must not crash and should return the field name (simple array of primitives)
+        self.assertIsInstance(result, str)
+        self.assertNotEqual(result, "TODO()")
+
+    def test_dart_type_from_prop_bare_string_items_no_crash(self) -> None:
+        """_dart_type_from_prop must not crash when items is a bare string (WebSocket schema style)."""
+        from api_toolkit.operations import _dart_type_from_prop
+        type_mappings = {"string": "String", "integer": "int", "array": "List"}
+        # Primitive bare-string items (e.g. items: "string")
+        result = _dart_type_from_prop(type_mappings, {"type": "array", "items": "string"})
+        self.assertIn("String", result)
+        # Schema-ref bare-string items (e.g. items: "Tool")
+        result2 = _dart_type_from_prop(type_mappings, {"type": "array", "items": "Tool"})
+        self.assertIn("Tool", result2)
+
+    def test_scaffold_array_from_json_bare_string_items_no_crash(self) -> None:
+        """_scaffold_array_from_json must not crash when items is a bare string (WebSocket schema style)."""
+        from api_toolkit.operations import _scaffold_array_from_json
+        type_mappings = {"string": "String", "integer": "int", "array": "List"}
+        # Primitive bare-string items
+        result = _scaffold_array_from_json("tags", {"type": "array", "items": "string", "required": True}, type_mappings)
+        self.assertIsInstance(result, str)
+        self.assertNotEqual(result, "TODO()")
+        # Schema-ref bare-string items
+        result2 = _scaffold_array_from_json("tools", {"type": "array", "items": "Tool", "required": True}, type_mappings)
+        self.assertIn("Tool", result2)
+
+    def test_dart_type_from_prop_list_type_no_crash(self) -> None:
+        """_dart_type_from_prop must not crash when prop['type'] is an OpenAPI 3.1 list."""
+        from api_toolkit.operations import _dart_type_from_prop
+        type_mappings = {"string": "String", "integer": "int", "array": "List"}
+        # Nullable scalar: ['integer', 'null'] -> single non-null type -> int
+        result = _dart_type_from_prop(type_mappings, {"type": ["integer", "null"]})
+        self.assertEqual(result, "int")
+        # Multi-type union: ['string', 'integer'] -> no unique type -> fallback
+        result2 = _dart_type_from_prop(type_mappings, {"type": ["string", "integer"]})
+        # Must not crash; exact fallback value is dynamic or None-mapped
+        self.assertIsInstance(result2, str)
+
+    def test_scaffold_to_json_bare_string_items_no_crash(self) -> None:
+        """_scaffold_to_json_expression must not crash when items is a bare string (WebSocket schema style)."""
+        from api_toolkit.operations import _scaffold_to_json_expression
+        type_mappings = {"string": "String", "integer": "int", "array": "List"}
+        # Primitive bare-string items
+        result = _scaffold_to_json_expression("tags", {"type": "array", "items": "string", "required": True}, type_mappings)
+        self.assertIsInstance(result, str)
+        self.assertNotEqual(result, "TODO()")
+        # Schema-ref bare-string items
+        result2 = _scaffold_to_json_expression("tools", {"type": "array", "items": "Tool", "required": True}, type_mappings)
+        self.assertIsInstance(result2, str)
+
+    def test_resolve_openapi31_type_non_string_returns_none(self) -> None:
+        """_resolve_openapi31_type must return None for non-string non-list input (e.g. None itself)."""
+        from api_toolkit.operations import _resolve_openapi31_type
+        self.assertIsNone(_resolve_openapi31_type(None))
+        self.assertEqual(_resolve_openapi31_type("string"), "string")
+        self.assertEqual(_resolve_openapi31_type(["integer", "null"]), "integer")
+        self.assertIsNone(_resolve_openapi31_type(["string", "integer"]))  # multi-type → None
+
+    def test_verify_anyof_null_sets_nullable_not_required_false(self) -> None:
+        """anyOf: [SomeType, null] must not produce 'optional but non-nullable' info for required fields."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            config_dir = self._setup_type_check_env(root,
+                spec_schemas={
+                    "Example": {
+                        "type": "object",
+                        "required": ["value"],
+                        "properties": {
+                            "value": {"anyOf": [{"$ref": "#/components/schemas/Foo"}, {"type": "null"}]},
+                        },
+                    },
+                    "Foo": {"type": "object"},
+                },
+                manifest_types={
+                    "Example": {"spec": "main", "kind": "object", "dart_class": "Example", "file": "lib/src/models/common/example.dart", "schema": "Example"},
+                    "Foo": {"spec": "main", "kind": "object", "dart_class": "Foo", "file": "lib/src/models/common/foo.dart", "schema": "Foo"},
+                },
+                dart_files={
+                    "lib/src/models/common/example.dart": self._make_dart_class("Example", [("value", "Foo", False)]),
+                    "lib/src/models/common/foo.dart": self._make_dart_class("Foo", []),
+                },
+            )
+            _, payload = command_verify(
+                SimpleNamespace(config_dir=config_dir, spec_name=None, checks="implementation", scope="all", type_name=None, baseline=None, git_ref=None)
+            )
+            issues = payload["results"]["implementation"]["issues"]
+            # Must not produce "optional in spec but non-nullable in Dart" info
+            optional_infos = [i for i in issues if i.get("name") == "Example"
+                              and i["level"] == "info"
+                              and "optional" in i.get("message", "").lower()]
+            self.assertEqual(optional_infos, [], f"anyOf nullable required field should not produce optional info: {optional_infos}")
+
+
+    def test_scaffold_nonnull_required_but_nullable(self) -> None:
+        """_is_scaffold_nonnull returns False for required+nullable; scaffold generates nullable Dart types."""
+        from api_toolkit.operations import (
+            _is_scaffold_nonnull, _scaffold_from_json_expression, _scaffold_class_source,
+        )
+        type_mappings = {"string": "String", "integer": "int", "array": "List"}
+
+        # required=True, nullable=False → non-nullable
+        self.assertTrue(_is_scaffold_nonnull({"required": True, "nullable": False}))
+        # required=True, nullable=True → nullable (required-but-nullable field)
+        self.assertFalse(_is_scaffold_nonnull({"required": True, "nullable": True}))
+        # required=False → nullable regardless
+        self.assertFalse(_is_scaffold_nonnull({"required": False}))
+        self.assertFalse(_is_scaffold_nonnull({}))
+
+        # fromJson for a required-but-nullable scalar should add "?" suffix
+        prop = {"type": "string", "required": True, "nullable": True}
+        expr = _scaffold_from_json_expression("value", prop, type_mappings)
+        self.assertIn("?", expr, f"Expected nullable cast in: {expr}")
+
+        # fromJson for a required non-nullable scalar should NOT have "?" suffix
+        prop_nonnull = {"type": "string", "required": True, "nullable": False}
+        expr_nonnull = _scaffold_from_json_expression("value", prop_nonnull, type_mappings)
+        self.assertNotIn("?", expr_nonnull, f"Expected non-nullable cast in: {expr_nonnull}")
+
+        # _scaffold_class_source field declaration
+        props = {
+            "value": {"type": "string", "required": True, "nullable": True},
+            "count": {"type": "integer", "required": True, "nullable": False},
+        }
+        source = _scaffold_class_source("Example", props, type_mappings)
+        self.assertIn("String? value", source, f"required+nullable field should be String?: {source}")
+        self.assertIn("int count", source, f"required+non-nullable field should be int: {source}")
+        # copyWith for required+nullable should use "as String?" not "! as String"
+        self.assertIn("as String?", source, f"copyWith for nullable field should use 'as String?': {source}")
+
+    def test_dart_type_from_prop_items_list_type_no_crash(self) -> None:
+        """_dart_type_from_prop must not crash when items['type'] is an OpenAPI 3.1 list."""
+        from api_toolkit.operations import _dart_type_from_prop
+        type_mappings = {"string": "String", "integer": "int", "array": "List"}
+        # items.type is a list (e.g. ["string", "null"]) — must not crash with TypeError
+        result = _dart_type_from_prop(type_mappings, {"type": "array", "items": {"type": ["string", "null"]}})
+        self.assertIn("String", result)
+        # Multi-type items → no unique type → fallback to dynamic
+        result2 = _dart_type_from_prop(type_mappings, {"type": "array", "items": {"type": ["string", "integer"]}})
+        self.assertIn("dynamic", result2)
+
+    def test_scaffold_array_from_json_items_list_type_no_crash(self) -> None:
+        """_scaffold_array_from_json must not crash when items['type'] is an OpenAPI 3.1 list."""
+        from api_toolkit.operations import _scaffold_array_from_json
+        type_mappings = {"string": "String", "integer": "int", "array": "List"}
+        # items.type = ["string", "null"] — must not crash
+        prop = {"type": "array", "items": {"type": ["string", "null"]}, "required": True}
+        result = _scaffold_array_from_json("tags", prop, type_mappings)
+        self.assertIsInstance(result, str)
+        self.assertIn("String", result)
+
+    def test_scaffold_to_json_nullable_ref_uses_null_aware_operator(self) -> None:
+        """_scaffold_to_json_expression must use ?. for nullable ref and array-of-ref fields."""
+        from api_toolkit.operations import _scaffold_to_json_expression, _scaffold_class_source
+        type_mappings = {"string": "String", "integer": "int", "array": "List"}
+
+        # Non-nullable ref → plain .toJson()
+        prop_nonnull = {"ref": "Foo", "required": True, "nullable": False}
+        self.assertEqual(_scaffold_to_json_expression("item", prop_nonnull, type_mappings), "item.toJson()")
+
+        # Required+nullable ref → null-aware ?.toJson()
+        prop_nullable = {"ref": "Foo", "required": True, "nullable": True}
+        result = _scaffold_to_json_expression("item", prop_nullable, type_mappings)
+        self.assertIn("?.", result, f"Expected null-aware operator for required+nullable ref: {result}")
+
+        # Non-nullable array of refs → plain .map(...)
+        prop_arr_nonnull = {"type": "array", "items": {"$ref": "#/components/schemas/Foo"}, "required": True, "nullable": False}
+        result_arr = _scaffold_to_json_expression("items", prop_arr_nonnull, type_mappings)
+        self.assertIn("items.map", result_arr, f"Expected non-null map for non-nullable array: {result_arr}")
+        self.assertNotIn("?.", result_arr)
+
+        # Required+nullable array of refs → null-aware ?.map(...)
+        prop_arr_nullable = {"type": "array", "items": {"$ref": "#/components/schemas/Foo"}, "required": True, "nullable": True}
+        result_arr_null = _scaffold_to_json_expression("items", prop_arr_nullable, type_mappings)
+        self.assertIn("?.", result_arr_null, f"Expected null-aware map for nullable array of refs: {result_arr_null}")
+
+        # Verify the full class source emits null-safe toJson for required+nullable ref
+        props = {"item": {"ref": "Foo", "required": True, "nullable": True}}
+        source = _scaffold_class_source("Example", props, type_mappings)
+        self.assertIn("?.toJson()", source, f"class toJson should use ?.toJson() for required+nullable ref: {source}")
+
 
 if __name__ == "__main__":
     unittest.main()
