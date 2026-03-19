@@ -28,7 +28,7 @@ void main() {
           choices: [
             ChatChoice(
               index: 0,
-              message: AssistantMessage(content: 'Hello!'),
+              message: AssistantMessage(content: MessageContent.text('Hello!')),
               finishReason: FinishReason.stop,
             ),
           ],
@@ -72,7 +72,9 @@ void main() {
           choices: [
             ChatChoice(
               index: 0,
-              message: AssistantMessage(content: 'Response'),
+              message: AssistantMessage(
+                content: MessageContent.text('Response'),
+              ),
               finishReason: FinishReason.stop,
             ),
           ],
@@ -134,7 +136,10 @@ void main() {
         expect(response.created, 1705312800);
         expect(response.model, 'mistral-large-latest');
         expect(response.choices, hasLength(1));
-        expect(response.choices.first.message.content, 'Full response');
+        expect(
+          (response.choices.first.message.content! as MessageTextContent).text,
+          'Full response',
+        );
         expect(response.usage?.totalTokens, 40);
       });
 
@@ -169,17 +174,19 @@ void main() {
           choices: [
             ChatChoice(
               index: 0,
-              message: AssistantMessage(content: 'First'),
+              message: AssistantMessage(content: MessageContent.text('First')),
               finishReason: FinishReason.stop,
             ),
             ChatChoice(
               index: 1,
-              message: AssistantMessage(content: 'Second'),
+              message: AssistantMessage(content: MessageContent.text('Second')),
               finishReason: FinishReason.stop,
             ),
           ],
         );
-        expect(response.firstChoice?.message.content, 'First');
+        final content =
+            response.firstChoice!.message.content! as MessageTextContent;
+        expect(content.text, 'First');
       });
 
       test('firstChoice returns null for empty choices', () {
@@ -200,7 +207,9 @@ void main() {
           choices: [
             ChatChoice(
               index: 0,
-              message: AssistantMessage(content: 'Hello world!'),
+              message: AssistantMessage(
+                content: MessageContent.text('Hello world!'),
+              ),
               finishReason: FinishReason.stop,
             ),
           ],
@@ -263,7 +272,7 @@ void main() {
           choices: [
             ChatChoice(
               index: 0,
-              message: AssistantMessage(content: 'Hi'),
+              message: AssistantMessage(content: MessageContent.text('Hi')),
               finishReason: FinishReason.stop,
             ),
           ],
@@ -285,7 +294,9 @@ void main() {
           choices: [
             ChatChoice(
               index: 0,
-              message: AssistantMessage(content: 'Round-trip content'),
+              message: AssistantMessage(
+                content: MessageContent.text('Round-trip content'),
+              ),
               finishReason: FinishReason.stop,
             ),
           ],

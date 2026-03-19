@@ -10,7 +10,8 @@ void main() {
       );
 
       expect(request.model, 'mistral-embed');
-      expect(request.input, 'Hello, world!');
+      expect(request.input, isA<EmbedInputString>());
+      expect((request.input as EmbedInputString).value, 'Hello, world!');
     });
 
     test('creates batch input request', () {
@@ -20,7 +21,12 @@ void main() {
       );
 
       expect(request.model, 'mistral-embed');
-      expect(request.input, ['Text 1', 'Text 2', 'Text 3']);
+      expect(request.input, isA<EmbedInputList>());
+      expect((request.input as EmbedInputList).values, [
+        'Text 1',
+        'Text 2',
+        'Text 3',
+      ]);
     });
 
     test('creates with encoding format', () {
@@ -55,7 +61,8 @@ void main() {
       final request = EmbeddingRequest.fromJson(json);
 
       expect(request.model, 'mistral-embed');
-      expect(request.input, ['test input']);
+      expect(request.input, isA<EmbedInputList>());
+      expect((request.input as EmbedInputList).values, ['test input']);
       expect(request.encodingFormat, 'float');
     });
 
@@ -75,7 +82,7 @@ void main() {
     test('creates with outputDimension', () {
       const request = EmbeddingRequest(
         model: 'mistral-embed',
-        input: 'Test',
+        input: EmbedInput.string('Test'),
         outputDimension: 256,
       );
 
@@ -85,7 +92,7 @@ void main() {
     test('creates with outputDtype', () {
       const request = EmbeddingRequest(
         model: 'mistral-embed',
-        input: 'Test',
+        input: EmbedInput.string('Test'),
         outputDtype: EmbeddingDtype.float,
       );
 
@@ -95,7 +102,7 @@ void main() {
     test('serializes with all optional fields', () {
       const request = EmbeddingRequest(
         model: 'mistral-embed',
-        input: ['Hello', 'World'],
+        input: EmbedInput.list(['Hello', 'World']),
         outputDimension: 256,
         outputDtype: EmbeddingDtype.int8,
         encodingFormat: 'float',
@@ -113,7 +120,10 @@ void main() {
     });
 
     test('omits null metadata from JSON', () {
-      const request = EmbeddingRequest(model: 'mistral-embed', input: 'Test');
+      const request = EmbeddingRequest(
+        model: 'mistral-embed',
+        input: EmbedInput.string('Test'),
+      );
 
       final json = request.toJson();
 
@@ -141,18 +151,18 @@ void main() {
     test('copyWith creates a copy with modified fields', () {
       const original = EmbeddingRequest(
         model: 'mistral-embed',
-        input: 'Original',
+        input: EmbedInput.string('Original'),
         outputDimension: 256,
       );
 
       final modified = original.copyWith(
-        input: 'Modified',
+        input: const EmbedInput.string('Modified'),
         outputDimension: 512,
         outputDtype: EmbeddingDtype.float,
       );
 
       expect(modified.model, 'mistral-embed');
-      expect(modified.input, 'Modified');
+      expect((modified.input as EmbedInputString).value, 'Modified');
       expect(modified.outputDimension, 512);
       expect(modified.outputDtype, EmbeddingDtype.float);
     });
@@ -160,7 +170,7 @@ void main() {
     test('copyWith preserves unmodified fields', () {
       const original = EmbeddingRequest(
         model: 'mistral-embed',
-        input: 'Test',
+        input: EmbedInput.string('Test'),
         outputDimension: 256,
         outputDtype: EmbeddingDtype.int8,
       );
@@ -168,7 +178,7 @@ void main() {
       final modified = original.copyWith(encodingFormat: 'base64');
 
       expect(modified.model, 'mistral-embed');
-      expect(modified.input, 'Test');
+      expect((modified.input as EmbedInputString).value, 'Test');
       expect(modified.outputDimension, 256);
       expect(modified.outputDtype, EmbeddingDtype.int8);
       expect(modified.encodingFormat, 'base64');
@@ -177,7 +187,7 @@ void main() {
     test('copyWith updates metadata', () {
       const original = EmbeddingRequest(
         model: 'mistral-embed',
-        input: 'Test',
+        input: EmbedInput.string('Test'),
         metadata: {'key': 'old'},
       );
 
@@ -185,19 +195,19 @@ void main() {
 
       expect(modified.metadata, {'key': 'new'});
       expect(modified.model, 'mistral-embed');
-      expect(modified.input, 'Test');
+      expect((modified.input as EmbedInputString).value, 'Test');
     });
 
     group('equality', () {
       test('requests with different metadata are not equal', () {
         const request1 = EmbeddingRequest(
           model: 'mistral-embed',
-          input: 'Test',
+          input: EmbedInput.string('Test'),
           metadata: {'key': 'value1'},
         );
         const request2 = EmbeddingRequest(
           model: 'mistral-embed',
-          input: 'Test',
+          input: EmbedInput.string('Test'),
           metadata: {'key': 'value2'},
         );
 
@@ -207,12 +217,12 @@ void main() {
       test('requests with same metadata are equal', () {
         const request1 = EmbeddingRequest(
           model: 'mistral-embed',
-          input: 'Test',
+          input: EmbedInput.string('Test'),
           metadata: {'key': 'value'},
         );
         const request2 = EmbeddingRequest(
           model: 'mistral-embed',
-          input: 'Test',
+          input: EmbedInput.string('Test'),
           metadata: {'key': 'value'},
         );
 
@@ -225,7 +235,7 @@ void main() {
       test('includes all fields including metadata', () {
         const request = EmbeddingRequest(
           model: 'mistral-embed',
-          input: 'Test',
+          input: EmbedInput.string('Test'),
           encodingFormat: 'float',
           outputDimension: 256,
           outputDtype: EmbeddingDtype.int8,
@@ -235,14 +245,18 @@ void main() {
 
         expect(
           str,
-          'EmbeddingRequest(model: mistral-embed, input: Test, '
+          'EmbeddingRequest(model: mistral-embed, '
+          'input: EmbedInputString(Test), '
           'encodingFormat: float, outputDimension: 256, '
           'outputDtype: EmbeddingDtype.int8, metadata: {project: test})',
         );
       });
 
       test('shows null for missing optional fields', () {
-        const request = EmbeddingRequest(model: 'mistral-embed', input: 'Test');
+        const request = EmbeddingRequest(
+          model: 'mistral-embed',
+          input: EmbedInput.string('Test'),
+        );
         final str = request.toString();
 
         expect(str, contains('encodingFormat: null'));

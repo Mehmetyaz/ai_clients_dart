@@ -12,7 +12,7 @@ void main() {
         choices: [
           ChatChoice(
             index: 0,
-            message: AssistantMessage(content: 'Hello!'),
+            message: AssistantMessage(content: MessageContent.text('Hello!')),
             finishReason: FinishReason.stop,
           ),
         ],
@@ -70,7 +70,10 @@ void main() {
       expect(response.id, 'cmpl-789');
       expect(response.model, 'mistral-small-latest');
       expect(response.choices, hasLength(1));
-      expect(response.choices.first.message.content, 'Hi there!');
+      expect(
+        (response.choices.first.message.content! as MessageTextContent).text,
+        'Hi there!',
+      );
       expect(response.usage, isNotNull);
     });
 
@@ -83,7 +86,7 @@ void main() {
         choices: [
           ChatChoice(
             index: 0,
-            message: AssistantMessage(content: 'Response'),
+            message: AssistantMessage(content: MessageContent.text('Response')),
             finishReason: FinishReason.length,
           ),
         ],
@@ -145,7 +148,7 @@ void main() {
           choices: [
             ChatChoice(
               index: 0,
-              message: AssistantMessage(content: 'Hi'),
+              message: AssistantMessage(content: MessageContent.text('Hi')),
               finishReason: FinishReason.stop,
             ),
           ],
@@ -179,10 +182,10 @@ void main() {
           object: 'chat.completion.chunk',
           created: 1699000001,
           model: 'mistral-large-latest',
-          choices: const [
-            ChatChoice(
+          choices: [
+            const ChatChoice(
               index: 0,
-              message: AssistantMessage(content: 'New'),
+              message: AssistantMessage(content: MessageContent.text('New')),
               finishReason: FinishReason.length,
             ),
           ],
@@ -198,7 +201,10 @@ void main() {
         expect(copied.created, 1699000001);
         expect(copied.model, 'mistral-large-latest');
         expect(copied.choices, hasLength(1));
-        expect(copied.choices.first.message.content, 'New');
+        expect(
+          (copied.choices.first.message.content! as MessageTextContent).text,
+          'New',
+        );
         expect(copied.usage!.totalTokens, 50);
       });
 
@@ -233,7 +239,7 @@ void main() {
           choices: [
             ChatChoice(
               index: 0,
-              message: AssistantMessage(content: 'Hi'),
+              message: AssistantMessage(content: MessageContent.text('Hi')),
               finishReason: FinishReason.stop,
             ),
           ],

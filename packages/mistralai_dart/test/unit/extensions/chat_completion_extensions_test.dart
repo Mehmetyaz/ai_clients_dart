@@ -12,7 +12,7 @@ void main() {
         choices: [
           ChatChoice(
             index: 0,
-            message: AssistantMessage(content: 'Hello!'),
+            message: AssistantMessage(content: MessageContent.text('Hello!')),
             finishReason: FinishReason.stop,
           ),
         ],
@@ -57,12 +57,12 @@ void main() {
         choices: [
           ChatChoice(
             index: 0,
-            message: AssistantMessage(content: 'Hello '),
+            message: AssistantMessage(content: MessageContent.text('Hello ')),
             finishReason: FinishReason.stop,
           ),
           ChatChoice(
             index: 1,
-            message: AssistantMessage(content: 'World!'),
+            message: AssistantMessage(content: MessageContent.text('World!')),
             finishReason: FinishReason.stop,
           ),
         ],
@@ -79,12 +79,12 @@ void main() {
         choices: [
           ChatChoice(
             index: 0,
-            message: AssistantMessage(content: 'First'),
+            message: AssistantMessage(content: MessageContent.text('First')),
             finishReason: FinishReason.stop,
           ),
           ChatChoice(
             index: 1,
-            message: AssistantMessage(content: 'Last'),
+            message: AssistantMessage(content: MessageContent.text('Last')),
             finishReason: FinishReason.stop,
           ),
         ],
@@ -167,7 +167,7 @@ void main() {
         choices: [
           ChatChoice(
             index: 0,
-            message: AssistantMessage(content: 'Hello'),
+            message: AssistantMessage(content: MessageContent.text('Hello')),
             finishReason: FinishReason.stop,
           ),
         ],
@@ -208,7 +208,7 @@ void main() {
         choices: [
           ChatChoice(
             index: 0,
-            message: AssistantMessage(content: 'Done'),
+            message: AssistantMessage(content: MessageContent.text('Done')),
             finishReason: FinishReason.stop,
           ),
         ],
@@ -240,7 +240,9 @@ void main() {
         choices: [
           ChatChoice(
             index: 0,
-            message: AssistantMessage(content: 'Truncated...'),
+            message: AssistantMessage(
+              content: MessageContent.text('Truncated...'),
+            ),
             finishReason: FinishReason.length,
           ),
         ],
@@ -253,7 +255,7 @@ void main() {
     test('text returns message content', () {
       const choice = ChatChoice(
         index: 0,
-        message: AssistantMessage(content: 'Test'),
+        message: AssistantMessage(content: MessageContent.text('Test')),
         finishReason: FinishReason.stop,
       );
       expect(choice.text, 'Test');
@@ -289,7 +291,7 @@ void main() {
 
       const stopChoice = ChatChoice(
         index: 0,
-        message: AssistantMessage(content: 'Done'),
+        message: AssistantMessage(content: MessageContent.text('Done')),
         finishReason: FinishReason.stop,
       );
       expect(stopChoice.stoppedNaturally, isTrue);
@@ -312,16 +314,18 @@ void main() {
       expect(withCalls.hasToolCalls, isTrue);
       expect(withCalls.toolCallCount, 1);
 
-      const noCalls = AssistantMessage(content: 'Hello');
+      const noCalls = AssistantMessage(content: MessageContent.text('Hello'));
       expect(noCalls.hasToolCalls, isFalse);
       expect(noCalls.toolCallCount, 0);
     });
 
     test('hasContent returns correct value', () {
-      const withContent = AssistantMessage(content: 'Hello');
+      const withContent = AssistantMessage(
+        content: MessageContent.text('Hello'),
+      );
       expect(withContent.hasContent, isTrue);
 
-      const emptyContent = AssistantMessage(content: '');
+      const emptyContent = AssistantMessage(content: MessageContent.text(''));
       expect(emptyContent.hasContent, isFalse);
 
       const nullContent = AssistantMessage(content: null);
@@ -365,10 +369,12 @@ void main() {
 
   group('SystemMessageExtensions', () {
     test('hasContent returns correct value', () {
-      const withContent = SystemMessage(content: 'You are helpful.');
+      const withContent = SystemMessage(
+        content: MessageContent.text('You are helpful.'),
+      );
       expect(withContent.hasContent, isTrue);
 
-      const empty = SystemMessage(content: '');
+      const empty = SystemMessage(content: MessageContent.text(''));
       expect(empty.hasContent, isFalse);
     });
   });
@@ -377,11 +383,14 @@ void main() {
     test('hasContent returns correct value', () {
       const withContent = ToolMessage(
         toolCallId: 'call-1',
-        content: '{"result": 42}',
+        content: MessageContent.text('{"result": 42}'),
       );
       expect(withContent.hasContent, isTrue);
 
-      const empty = ToolMessage(toolCallId: 'call-2', content: '');
+      const empty = ToolMessage(
+        toolCallId: 'call-2',
+        content: MessageContent.text(''),
+      );
       expect(empty.hasContent, isFalse);
     });
   });

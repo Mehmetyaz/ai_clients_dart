@@ -141,7 +141,7 @@ Future<void> multipleOperationsParallel(MistralClient client) async {
         .create(
           request: const EmbeddingRequest(
             model: 'mistral-embed',
-            input: ['Hello, world!'],
+            input: EmbedInput.list(['Hello, world!']),
           ),
         )
         .then((r) => 'Embedding: ${r.data.first.embedding.length} dimensions'),
