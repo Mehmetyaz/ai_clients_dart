@@ -13,7 +13,7 @@ void main() async {
     final response = await client.embeddings.create(
       request: const EmbedRequest(
         model: 'nomic-embed-text',
-        input: 'Hello, world!',
+        input: EmbedInput.string('Hello, world!'),
       ),
     );
 
@@ -28,11 +28,11 @@ void main() async {
     final batchResponse = await client.embeddings.create(
       request: const EmbedRequest(
         model: 'nomic-embed-text',
-        input: [
+        input: EmbedInput.list([
           'The cat sat on the mat',
           'A dog is playing in the park',
           'Machine learning is fascinating',
-        ],
+        ]),
       ),
     );
 

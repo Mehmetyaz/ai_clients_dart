@@ -9,13 +9,14 @@ void main() {
       final request = EmbedRequest.fromJson(json);
 
       expect(request.model, 'nomic-embed-text');
-      expect(request.input, 'Hello, world!');
+      expect(request.input, isA<EmbedInputString>());
+      expect((request.input as EmbedInputString).value, 'Hello, world!');
     });
 
     test('toJson converts request correctly', () {
       const request = EmbedRequest(
         model: 'nomic-embed-text',
-        input: 'Hello, world!',
+        input: EmbedInput.string('Hello, world!'),
       );
 
       final json = request.toJson();
@@ -31,7 +32,8 @@ void main() {
       };
 
       final request = EmbedRequest.fromJson(json);
-      expect(request.input, ['Hello', 'World']);
+      expect(request.input, isA<EmbedInputList>());
+      expect((request.input as EmbedInputList).values, ['Hello', 'World']);
 
       final outputJson = request.toJson();
       expect(outputJson['input'], ['Hello', 'World']);
@@ -40,10 +42,10 @@ void main() {
     test('handles optional parameters', () {
       const request = EmbedRequest(
         model: 'nomic-embed-text',
-        input: 'Hello',
+        input: EmbedInput.string('Hello'),
         truncate: true,
         dimensions: 512,
-        keepAlive: '5m',
+        keepAlive: KeepAlive.duration('5m'),
       );
 
       final json = request.toJson();
@@ -54,8 +56,14 @@ void main() {
     });
 
     test('equality works correctly for string input', () {
-      const request1 = EmbedRequest(model: 'nomic-embed-text', input: 'Hello');
-      const request2 = EmbedRequest(model: 'nomic-embed-text', input: 'Hello');
+      const request1 = EmbedRequest(
+        model: 'nomic-embed-text',
+        input: EmbedInput.string('Hello'),
+      );
+      const request2 = EmbedRequest(
+        model: 'nomic-embed-text',
+        input: EmbedInput.string('Hello'),
+      );
 
       expect(request1, equals(request2));
       expect(request1.hashCode, equals(request2.hashCode));
@@ -64,15 +72,15 @@ void main() {
     test('equality works correctly for list input', () {
       const request1 = EmbedRequest(
         model: 'nomic-embed-text',
-        input: ['Hello', 'World'],
+        input: EmbedInput.list(['Hello', 'World']),
       );
       const request2 = EmbedRequest(
         model: 'nomic-embed-text',
-        input: ['Hello', 'World'],
+        input: EmbedInput.list(['Hello', 'World']),
       );
       const request3 = EmbedRequest(
         model: 'nomic-embed-text',
-        input: ['Hello', 'Different'],
+        input: EmbedInput.list(['Hello', 'Different']),
       );
 
       expect(request1, equals(request2));
@@ -83,17 +91,17 @@ void main() {
     test('equality includes all fields', () {
       const request1 = EmbedRequest(
         model: 'nomic-embed-text',
-        input: 'Hello',
+        input: EmbedInput.string('Hello'),
         truncate: true,
         dimensions: 512,
-        keepAlive: '5m',
+        keepAlive: KeepAlive.duration('5m'),
       );
       const request2 = EmbedRequest(
         model: 'nomic-embed-text',
-        input: 'Hello',
+        input: EmbedInput.string('Hello'),
         truncate: false,
         dimensions: 512,
-        keepAlive: '5m',
+        keepAlive: KeepAlive.duration('5m'),
       );
 
       expect(request1, isNot(equals(request2)));
