@@ -14,6 +14,7 @@ class ProviderConfig {
   final AuthProvider? authProvider;
   final String model;
   final String? envKeyName;
+  final bool supportsVision;
 
   const ProviderConfig({
     required this.name,
@@ -21,6 +22,7 @@ class ProviderConfig {
     this.authProvider,
     required this.model,
     this.envKeyName,
+    this.supportsVision = false,
   });
 
   bool get isAvailable {
@@ -40,6 +42,32 @@ class ProviderConfig {
 ///
 /// These tests verify that all providers implement the core OpenResponses
 /// specification consistently.
+///
+/// ## Official CLI Compliance Test Runner
+///
+/// The OpenResponses project provides an official CLI compliance test runner
+/// that validates servers independently of any client library. When debugging
+/// integration test failures, you can use it to isolate whether the issue is
+/// in the provider (server) or our client:
+///
+/// ```bash
+/// # 1. Clone the official repo and install dependencies
+/// git clone https://github.com/openresponses/openresponses.git
+/// cd openresponses && bun install
+///
+/// # 2. Run compliance tests against a provider
+/// bun run test:compliance -- \
+///   --base-url https://api.openai.com/v1 \
+///   --api-key $OPENAI_API_KEY \
+///   --model gpt-4o-mini
+///
+/// # 3. Filter specific tests or get JSON output for CI
+/// bun run test:compliance -- --base-url $URL --api-key $KEY --filter basic-response
+/// bun run test:compliance -- --base-url $URL --api-key $KEY --json > results.json
+/// ```
+///
+/// If the CLI passes but our Dart tests fail, the issue is in our client.
+/// If the CLI also fails, the provider has a compatibility issue.
 void main() {
   // Define available providers
   final providers = <ProviderConfig>[
@@ -51,6 +79,7 @@ void main() {
           : null,
       model: 'gpt-4o-mini',
       envKeyName: 'OPENAI_API_KEY',
+      supportsVision: true,
     ),
     ProviderConfig(
       name: 'Ollama',
@@ -136,6 +165,27 @@ void main() {
           expect(response.outputText?.toLowerCase(), contains('paris'));
         });
 
+        // CORE-004: System role message via input items
+        // (CLI test: system-prompt — uses system role message in input array,
+        // distinct from CORE-002 which uses the `instructions` parameter)
+        test('CORE-004: System role message in input items', () async {
+          final response = await client.responses.create(
+            CreateResponseRequest(
+              model: provider.model,
+              input: ResponseItemsInput([
+                MessageItem.systemText(
+                  'You are a pirate. Always respond in pirate speak.',
+                ),
+                MessageItem.userText('Say hello.'),
+              ]),
+            ),
+          );
+
+          expect(response.status, ResponseStatus.completed);
+          expect(response.output, isNotEmpty);
+          expect(response.outputText, isNotNull);
+        });
+
         // STREAM-001: Basic streaming
         test('STREAM-001: Supports basic streaming', () async {
           final events = <StreamingEvent>[];
@@ -196,35 +246,86 @@ void main() {
           expect(finalResponse!.status, ResponseStatus.completed);
         });
 
-        // TOOL-001: Function tool definition
-        test('TOOL-001: Accepts function tool definitions', () async {
-          final response = await client.responses.create(
-            CreateResponseRequest(
-              model: provider.model,
-              input: const ResponseTextInput('What is the weather in Paris?'),
-              tools: const [
-                FunctionTool(
-                  name: 'get_weather',
-                  description: 'Get the current weather for a location',
-                  parameters: {
-                    'type': 'object',
-                    'properties': {
-                      'location': {
-                        'type': 'string',
-                        'description': 'The city name',
-                      },
-                    },
-                    'required': ['location'],
-                  },
+        // TOOL-001: Function tool definition and function_call output
+        // (CLI test: tool-calling — validates function_call output item)
+        test(
+          'TOOL-001: Produces function_call output for tool definitions',
+          () async {
+            final response = await client.responses.create(
+              CreateResponseRequest(
+                model: provider.model,
+                input: const ResponseTextInput(
+                  "What's the weather like in San Francisco?",
                 ),
-              ],
-            ),
-          );
+                toolChoice: const ToolChoiceRequired(),
+                tools: const [
+                  FunctionTool(
+                    name: 'get_weather',
+                    description: 'Get the current weather for a location',
+                    parameters: {
+                      'type': 'object',
+                      'properties': {
+                        'location': {
+                          'type': 'string',
+                          'description':
+                              'The city and state, e.g. San Francisco, CA',
+                        },
+                      },
+                      'required': ['location'],
+                    },
+                  ),
+                ],
+              ),
+            );
 
-          expect(response.status, ResponseStatus.completed);
-          // Tool calling behavior varies by provider/model
-          // Just verify the request was accepted
-        });
+            expect(response.status, ResponseStatus.completed);
+            expect(response.output, isNotEmpty);
+
+            // Validate that the response contains a function_call output item
+            // (matching the CLI's hasOutputType("function_call") validator)
+            final functionCalls = response.functionCalls;
+            expect(
+              functionCalls,
+              isNotEmpty,
+              reason: 'Expected at least one function_call output item',
+            );
+            expect(functionCalls.first.name, 'get_weather');
+            expect(functionCalls.first.arguments, isNotEmpty);
+          },
+        );
+
+        // IMAGE-001: Image input in user message
+        // (CLI test: image-input — sends image URL in user content)
+        test(
+          'IMAGE-001: Accepts image input in user message',
+          skip: provider.supportsVision
+              ? null
+              : 'Provider ${provider.name} does not support vision',
+          () async {
+            final response = await client.responses.create(
+              CreateResponseRequest(
+                model: provider.model,
+                input: ResponseItemsInput([
+                  MessageItem.user([
+                    InputContent.text(
+                      'What do you see in this image? Answer in one sentence.',
+                    ),
+                    InputContent.imageUrl(
+                      // 1x1 red PNG pixel as a minimal valid image
+                      'data:image/png;base64,'
+                      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlE'
+                      'QVQIW2P4z8BQDwAEgAF/pooBPQAAAABJRU5ErkJggg==',
+                    ),
+                  ]),
+                ]),
+              ),
+            );
+
+            expect(response.status, ResponseStatus.completed);
+            expect(response.output, isNotEmpty);
+            expect(response.outputText, isNotNull);
+          },
+        );
 
         // EXT-001: Response extensions work
         test('EXT-001: Response extensions work correctly', () async {
