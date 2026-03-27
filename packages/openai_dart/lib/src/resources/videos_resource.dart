@@ -154,4 +154,46 @@ class VideosResource extends ResourceBase {
     final response = await interceptorChain.execute(httpRequest);
     return Video.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
+
+  /// Creates a new video edit from an existing video.
+  ///
+  /// References an existing video by ID. Direct video file uploads via
+  /// multipart are not yet supported.
+  Future<Video> createEdit(CreateVideoEditRequest request) async {
+    ensureNotClosed?.call();
+    final url = requestBuilder.buildUrl('$_endpoint/edits');
+    final headers = requestBuilder.buildHeaders();
+    final httpRequest = http.Request('POST', url)
+      ..headers.addAll(headers)
+      ..body = jsonEncode(request.toJson());
+    final response = await interceptorChain.execute(httpRequest);
+    return Video.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  /// Creates an extension of a completed video.
+  ///
+  /// References an existing video by ID. Direct video file uploads via
+  /// multipart are not yet supported.
+  Future<Video> createExtension(CreateVideoExtendRequest request) async {
+    ensureNotClosed?.call();
+    final url = requestBuilder.buildUrl('$_endpoint/extensions');
+    final headers = requestBuilder.buildHeaders();
+    final httpRequest = http.Request('POST', url)
+      ..headers.addAll(headers)
+      ..body = jsonEncode(request.toJson());
+    final response = await interceptorChain.execute(httpRequest);
+    return Video.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  /// Retrieves a video character.
+  Future<VideoCharacter> retrieveCharacter(String characterId) async {
+    ensureNotClosed?.call();
+    final url = requestBuilder.buildUrl('$_endpoint/characters/$characterId');
+    final headers = requestBuilder.buildHeaders();
+    final httpRequest = http.Request('GET', url)..headers.addAll(headers);
+    final response = await interceptorChain.execute(httpRequest);
+    return VideoCharacter.fromJson(
+      jsonDecode(response.body) as Map<String, dynamic>,
+    );
+  }
 }
