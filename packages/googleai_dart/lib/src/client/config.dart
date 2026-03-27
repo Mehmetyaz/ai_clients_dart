@@ -23,6 +23,7 @@ enum ApiMode {
   googleAI,
 
   /// Vertex AI - Uses {location}-aiplatform.googleapis.com with GCP project
+  /// (`aiplatform.googleapis.com` for the `global` location).
   vertexAI,
 }
 
@@ -181,6 +182,11 @@ class GoogleAIConfig {
   /// Requires [projectId] and [location] for GCP integration.
   /// Authentication must use OAuth 2.0 with service account credentials.
   ///
+  /// The [location] determines the API endpoint:
+  /// - `'global'` → `https://aiplatform.googleapis.com`
+  /// - Other values (e.g. `'us-central1'`) →
+  ///   `https://{location}-aiplatform.googleapis.com`
+  ///
   /// Example:
   /// ```dart
   /// final config = GoogleAIConfig.vertexAI(
@@ -213,7 +219,7 @@ class GoogleAIConfig {
       'access_token', // Ephemeral token query param
     ],
   }) : this(
-         baseUrl: 'https://$location-aiplatform.googleapis.com',
+         baseUrl: vertexAIBaseUrl(location),
          apiMode: ApiMode.vertexAI,
          apiVersion: apiVersion,
          projectId: projectId,
@@ -255,7 +261,30 @@ class GoogleAIConfig {
     );
   }
 
+  /// Returns the Vertex AI hostname for the given [location].
+  ///
+  /// - `'global'` → `aiplatform.googleapis.com`
+  /// - Other values → `{location}-aiplatform.googleapis.com`
+  static String vertexAIHost(String location) {
+    if (location == 'global') {
+      return 'aiplatform.googleapis.com';
+    }
+    return '$location-aiplatform.googleapis.com';
+  }
+
+  /// Returns the Vertex AI base URL for the given [location].
+  ///
+  /// - `'global'` → `https://aiplatform.googleapis.com`
+  /// - Other values → `https://{location}-aiplatform.googleapis.com`
+  static String vertexAIBaseUrl(String location) {
+    return 'https://${vertexAIHost(location)}';
+  }
+
   /// Creates a copy with overridden values.
+  ///
+  /// If [location] is changed without an explicit [baseUrl], and the config
+  /// uses [ApiMode.vertexAI], the base URL is automatically recalculated
+  /// from the new location.
   GoogleAIConfig copyWith({
     String? baseUrl,
     ApiMode? apiMode,
@@ -270,12 +299,20 @@ class GoogleAIConfig {
     Level? logLevel,
     List<String>? redactionList,
   }) {
+    final effectiveMode = apiMode ?? this.apiMode;
+    final effectiveLocation = location ?? this.location;
+    var effectiveBaseUrl = baseUrl ?? this.baseUrl;
+    if (baseUrl == null &&
+        location != null &&
+        effectiveMode == ApiMode.vertexAI) {
+      effectiveBaseUrl = vertexAIBaseUrl(location);
+    }
     return GoogleAIConfig(
-      baseUrl: baseUrl ?? this.baseUrl,
-      apiMode: apiMode ?? this.apiMode,
+      baseUrl: effectiveBaseUrl,
+      apiMode: effectiveMode,
       apiVersion: apiVersion ?? this.apiVersion,
       projectId: projectId ?? this.projectId,
-      location: location ?? this.location,
+      location: effectiveLocation,
       authProvider: authProvider ?? this.authProvider,
       defaultHeaders: defaultHeaders ?? this.defaultHeaders,
       defaultQueryParams: defaultQueryParams ?? this.defaultQueryParams,

@@ -46,6 +46,108 @@ void main() {
 
       expect(updated.timeout, const Duration(seconds: 45));
     });
+
+    test(
+      'copyWith recalculates baseUrl when location changes on Vertex AI',
+      () {
+        final original = GoogleAIConfig.vertexAI(
+          projectId: 'test-project',
+          location: 'us-central1',
+          authProvider: const ApiKeyProvider('test-key'),
+        );
+        expect(
+          original.baseUrl,
+          'https://us-central1-aiplatform.googleapis.com',
+        );
+
+        final updated = original.copyWith(location: 'global');
+        expect(updated.baseUrl, 'https://aiplatform.googleapis.com');
+        expect(updated.location, 'global');
+
+        final regional = original.copyWith(location: 'europe-west1');
+        expect(
+          regional.baseUrl,
+          'https://europe-west1-aiplatform.googleapis.com',
+        );
+      },
+    );
+
+    test('copyWith preserves explicit baseUrl even when location changes', () {
+      final original = GoogleAIConfig.vertexAI(
+        projectId: 'test-project',
+        location: 'us-central1',
+        authProvider: const ApiKeyProvider('test-key'),
+      );
+
+      final updated = original.copyWith(
+        baseUrl: 'https://custom.endpoint.com',
+        location: 'global',
+      );
+      expect(updated.baseUrl, 'https://custom.endpoint.com');
+      expect(updated.location, 'global');
+    });
+  });
+
+  group('GoogleAIConfig.vertexAI', () {
+    test('global location uses aiplatform.googleapis.com', () {
+      final config = GoogleAIConfig.vertexAI(
+        projectId: 'test-project',
+        location: 'global',
+        authProvider: const ApiKeyProvider('test-key'),
+      );
+      expect(config.baseUrl, 'https://aiplatform.googleapis.com');
+      expect(config.location, 'global');
+    });
+
+    test('default location is us-central1', () {
+      final config = GoogleAIConfig.vertexAI(
+        projectId: 'test-project',
+        authProvider: const ApiKeyProvider('test-key'),
+      );
+      expect(config.baseUrl, 'https://us-central1-aiplatform.googleapis.com');
+      expect(config.location, 'us-central1');
+    });
+
+    test('regional location uses location-prefixed host', () {
+      final config = GoogleAIConfig.vertexAI(
+        projectId: 'test-project',
+        location: 'europe-west1',
+        authProvider: const ApiKeyProvider('test-key'),
+      );
+      expect(config.baseUrl, 'https://europe-west1-aiplatform.googleapis.com');
+    });
+  });
+
+  group('GoogleAIConfig.vertexAIHost', () {
+    test('global returns bare host', () {
+      expect(
+        GoogleAIConfig.vertexAIHost('global'),
+        'aiplatform.googleapis.com',
+      );
+    });
+
+    test('regional location returns prefixed host', () {
+      expect(
+        GoogleAIConfig.vertexAIHost('us-central1'),
+        'us-central1-aiplatform.googleapis.com',
+      );
+    });
+  });
+
+  group('GoogleAIConfig.vertexAIBaseUrl', () {
+    test('global returns URL without location prefix', () {
+      expect(
+        GoogleAIConfig.vertexAIBaseUrl('global'),
+        'https://aiplatform.googleapis.com',
+      );
+    });
+
+    test('regional location returns URL with location prefix', () {
+      expect(
+        GoogleAIConfig.vertexAIBaseUrl('us-central1'),
+        'https://us-central1-aiplatform.googleapis.com',
+      );
+    });
   });
 
   group('RetryPolicy', () {
