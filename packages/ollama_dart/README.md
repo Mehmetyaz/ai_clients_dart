@@ -54,7 +54,7 @@ Dart client for the **[Ollama API](https://ollama.com/)** to run local and self-
 
 ```yaml
 dependencies:
-  ollama_dart: ^1.4.1
+  ollama_dart: ^2.0.0
 ```
 
 ```dart

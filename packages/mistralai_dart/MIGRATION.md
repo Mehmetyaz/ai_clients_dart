@@ -6,6 +6,79 @@ For the complete list of changes, see [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
+## Migrating from v1.x to v2.0.0
+
+v2.0.0 updates to the latest Mistral AI spec, replaces untyped `Object` fields with sealed union types, and adds TTS support with a minor breaking change in `AgentCompletionRequest`.
+
+### 1) `ModerationLLMV1Action` → `ModerationLLMAction`
+
+The enum is now shared between V1 and V2 moderation configs.
+
+```dart
+// Before (v1.x)
+const config = ModerationLLMV1Config(
+  action: ModerationLLMV1Action.block,
+);
+
+// After (v2.0.0)
+const config = ModerationLLMV1Config(
+  action: ModerationLLMAction.block,
+);
+```
+
+### 2) Chat Message `content` → `MessageContent` Sealed Type
+
+All `ChatMessage` variant `content` fields now use the `MessageContent` sealed type instead of `String`, `String?`, or `Object`.
+
+| Variant | Before | After |
+|---------|--------|-------|
+| `SystemMessage.content` | `String` | `MessageContent` |
+| `UserMessage.content` | `Object` | `MessageContent?` |
+| `AssistantMessage.content` | `String?` | `MessageContent?` |
+| `ToolMessage.content` | `String` | `MessageContent?` |
+
+```dart
+// Before (v1.x)
+final msg = ChatMessage.user('Hello!');
+// content was Object — required casting
+
+// After (v2.0.0)
+final msg = ChatMessage.user('Hello!');
+// content is MessageContent — pattern match:
+switch (msg.content) {
+  case MessageTextContent(:final text): print(text);
+  case MessagePartsContent(:final parts): print('${parts.length} parts');
+  case null: print('no content');
+}
+```
+
+### 3) `EmbeddingRequest.input` → `EmbedInput` Sealed Type
+
+```dart
+// Before (v1.x)
+EmbeddingRequest(model: 'model', input: 'text');  // Object
+
+// After (v2.0.0)
+EmbeddingRequest.single(model: 'model', input: 'text');
+EmbeddingRequest.batch(model: 'model', input: ['a', 'b']);
+```
+
+### 4) `ContentPart.fromJson` No Longer Throws
+
+Unknown content types now return `UnknownContentPart` instead of throwing `FormatException`.
+
+### 5) `AgentCompletionRequest.stop` → `StopSequence`
+
+```dart
+// Before (v1.x)
+AgentCompletionRequest(agentId: 'agent-1', messages: [...], stop: ['END']);
+
+// After (v2.0.0)
+AgentCompletionRequest(agentId: 'agent-1', messages: [...], stop: StopSequence.multiple(['END']));
+```
+
+---
+
 ## Migrating from v0.x to v1.0.0
 
 This guide helps you migrate from the old `mistralai_dart` client (v0.x) to the new **v1.0.0** (complete rewrite with resource-based organization and comprehensive API coverage).

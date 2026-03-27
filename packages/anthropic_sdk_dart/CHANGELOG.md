@@ -1,3 +1,11 @@
+## 1.4.0
+
+Aligns with the latest Anthropic OpenAPI spec, adding model capabilities (`ModelCapabilities`, `CapabilitySupport`), thinking display modes (`ThinkingDisplayMode`), and `WebFetchTool` v20260309 with cache bypass control. Also standardizes equality helper locations and overhauls documentation with [llms.txt](llms.txt) ecosystem files.
+
+- **FEAT**: Align with latest Anthropic OpenAPI spec ([#129](https://github.com/davidmigloz/ai_clients_dart/issues/129)). ([9160bb13](https://github.com/davidmigloz/ai_clients_dart/commit/9160bb13a35d2a65e052deb9a29a4bae6ab284c3))
+- **REFACTOR**: Standardize equality helpers location across packages ([#123](https://github.com/davidmigloz/ai_clients_dart/issues/123)). ([34086102](https://github.com/davidmigloz/ai_clients_dart/commit/340861028e0958a50bb142519046f26a8a569b7c))
+- **DOCS**: Overhaul READMEs and add llms.txt ecosystem ([#149](https://github.com/davidmigloz/ai_clients_dart/issues/149)). ([98f11483](https://github.com/davidmigloz/ai_clients_dart/commit/98f114832f18f236ee4ab526ba2c34d53ad3d093))
+
 ## 1.3.2
 
 Complete `McpToolset.toString()` to include all fields (`authorizationToken`, `cacheControl`) that were previously missing.
@@ -44,7 +52,8 @@ Added `withApiKey` convenience constructors for simplified client initialization
 
 ## 1.0.0
 
-> Note: This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.
+> [!CAUTION]
+> This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.
 
 **TL;DR**: Complete reimplementation with a new architecture, minimal dependencies, resource-based API, and improved developer experience. Hand-crafted models (no code generation), interceptor-driven architecture, comprehensive error handling, full Anthropic API coverage, and alignment with the latest Anthropic OpenAPI (2026-02-19).
 
@@ -148,7 +157,8 @@ See **[MIGRATION.md](MIGRATION.md)** for step-by-step examples and mapping table
 
 ## 0.3.0
 
-> Note: This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.
+> [!CAUTION]
+> This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.
 
 - **FIX**: Handle optional space after colon in SSE parser ([#790](https://github.com/davidmigloz/langchain_dart/issues/790)). ([b31fbead](https://github.com/davidmigloz/langchain_dart/commit/b31fbead3ad4cb3ca9aabd6d8fee5e523df82d65))
 - **FEAT**: Add extended thinking support ([#803](https://github.com/davidmigloz/langchain_dart/issues/803)). ([1ccb74a6](https://github.com/davidmigloz/langchain_dart/commit/1ccb74a639d63325a7fcac8474ed0500dedd657e))
@@ -176,7 +186,8 @@ See **[MIGRATION.md](MIGRATION.md)** for step-by-step examples and mapping table
 
 ## 0.2.0
 
-> Note: This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.
+> [!CAUTION]
+> This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.
 
 - **FEAT**: Add support for Message Batches ([#585](https://github.com/davidmigloz/langchain_dart/issues/585)). ([a41270a0](https://github.com/davidmigloz/langchain_dart/commit/a41270a06135112afce0fa4da985c92e2282ba08))
 - **FEAT**: Add claude-3-5-sonnet-20241022 to model catalog ([#583](https://github.com/davidmigloz/langchain_dart/issues/583)). ([0cc59e13](https://github.com/davidmigloz/langchain_dart/commit/0cc59e137b69b19c31eeefdad28e5cf757abe8d3))

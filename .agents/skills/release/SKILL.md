@@ -256,7 +256,8 @@ For each released package, **prepend** a new section to `packages/{pkg}/CHANGELO
 ```markdown
 ## {new_version}
 
-> Note: This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.          ← only if breaking
+> [!CAUTION]                                                                                                           ← only if breaking
+> This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.
 
 {AI-written summary of main changes, 1-3 sentences}
 
@@ -282,7 +283,11 @@ For each released package, **prepend** a new section to `packages/{pkg}/CHANGELO
    - Within each type group, sort by **commit date descending** (newest first)
 6. **All links in new changelog entries** must point to `https://github.com/davidmigloz/ai_clients_dart` (older historical entries may still reference `davidmigloz/langchain_dart` — leave those as-is)
 7. **Standard markdown list**: `- **TYPE**: ...` (no leading space)
-8. **Breaking note**: Only include `> Note: This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.` if there are breaking changes
+8. **Breaking note**: Only include the following if there are breaking changes:
+   ```
+   > [!CAUTION]
+   > This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.
+   ```
 9. **AI summary**: Write 1-3 sentences summarizing the main changes in plain English. Place it between the breaking note (if any) and the entry list.
 
    **Primary source**: Use the PR summaries collected in Step 4b as the primary source for writing the summary. PR descriptions contain the rationale, scope, and user-facing impact that commit subjects lack. Synthesize across multiple PRs into a coherent narrative — do not simply parrot PR titles or concatenate bullet points.
@@ -315,7 +320,7 @@ Before writing a new changelog section, check if `## {new_version}` already exis
 2. **If the section already exists**:
    1. **Review the existing content for quality**: Pre-existing sections may be draft notes, rough bullet points, or incomplete text from a PR. Read the content carefully and ensure it is polished, well-structured, and presentable as a published changelog. Fix grammar, formatting, missing links, or unclear descriptions. Ensure it follows the same formatting conventions as the rest of the changelog (bold type prefixes, issue/commit links, ordering rules defined above).
    2. **Append** a `### Commits` subsection at the end of the existing section with the auto-generated commit entries (using the standard formatting rules above). This preserves the hand-written narrative while adding the structured commit log.
-   3. If the existing section lacks a breaking change note but the commits include breaking changes, add the `> Note: This release has breaking changes.` line at the top of the section (after the `## {version}` heading).
+   3. If the existing section lacks a breaking change note but the commits include breaking changes, add the `> [!CAUTION]` / `> This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.` admonition at the top of the section (after the `## {version}` heading).
 3. **If the section does not exist**: Proceed with normal prepend behavior as described above.
 
 ---

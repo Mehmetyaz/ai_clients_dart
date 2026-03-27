@@ -1,3 +1,9 @@
+## 0.2.3
+
+Overhauls README documentation with standardized structure and adds [llms.txt](llms.txt) ecosystem files for improved LLM discoverability.
+
+- **DOCS**: Overhaul READMEs and add llms.txt ecosystem ([#149](https://github.com/davidmigloz/ai_clients_dart/issues/149)). ([98f11483](https://github.com/davidmigloz/ai_clients_dart/commit/98f114832f18f236ee4ab526ba2c34d53ad3d093))
+
 ## 0.2.2
 
 Updated README with badges, sponsor section, and improved documentation.
@@ -18,7 +24,8 @@ Updated repository URLs to new location.
 
 ## 0.2.0
 
-> Note: This release has breaking changes.
+> [!CAUTION]
+> This release has breaking changes.
 
 - **FEAT**: Upgrade to http v1.5.0 ([#785](https://github.com/davidmigloz/langchain_dart/issues/785)). ([f7c87790](https://github.com/davidmigloz/langchain_dart/commit/f7c8779011015b5a4a7f3a07dca32bde1bb2ea88))
 - **BREAKING** **BUILD**: Require Dart >=3.8.0 ([#792](https://github.com/davidmigloz/langchain_dart/issues/792)). ([b887f5c6](https://github.com/davidmigloz/langchain_dart/commit/b887f5c62e307b3a510c5049e3d1fbe7b7b4f4c9))

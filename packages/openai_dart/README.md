@@ -59,7 +59,7 @@ Dart client for the **[OpenAI API](https://platform.openai.com/docs/api-referenc
 
 ```yaml
 dependencies:
-  openai_dart: ^2.0.0
+  openai_dart: ^3.0.0
 ```
 
 ```dart

@@ -6,6 +6,73 @@ For the complete list of changes, see [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
+## Migrating from v3.x to v4.0.0
+
+v4.0.0 aligns with the latest Google AI spec, restructuring `Annotation` into a sealed class, strengthening weak types with proper Dart enums, and adding Google Maps support.
+
+### 1) `Annotation` → Sealed Class with Subtypes
+
+`Annotation` is now a sealed class with `UrlCitation`, `FileCitation`, and `PlaceCitation` subtypes. Code that constructs or pattern-matches on `Annotation` must switch to the new subtypes.
+
+```dart
+// Before (v3.x)
+final annotation = Annotation(startIndex: 0, endIndex: 10, source: 'url');
+
+// After (v4.0.0)
+final annotation = UrlCitation(startIndex: 0, endIndex: 10, url: 'https://...');
+// or FileCitation(...) or PlaceCitation(...)
+```
+
+### 2) `GoogleSearchResult` Field Changes
+
+`GoogleSearchResult.url` and `GoogleSearchResult.title` have been removed. Use `searchSuggestions` instead.
+
+```dart
+// Before (v3.x)
+final result = GoogleSearchResult(url: 'https://...', title: 'Title');
+
+// After (v4.0.0)
+final result = GoogleSearchResult(searchSuggestions: 'suggestion text');
+```
+
+### 3) `FileSearchResult` Simplified
+
+`FileSearchResult` is now an empty class — all properties have been removed per the upstream spec.
+
+### 4) Weak Types Replaced with Enums and Typed Classes
+
+Several fields that previously used raw `String?`, `List<String>?`, or `Map<String, dynamic>?` are now proper Dart enums and typed classes:
+
+| Class | Field | Before | After |
+|-------|-------|--------|-------|
+| `GenerationConfig` | `responseModalities` | `List<String>?` | `List<ResponseModality>?` |
+| `GenerationConfig` | `speechConfig` | `Map<String, dynamic>?` | `SpeechConfig?` |
+| `GenerationConfig` | `mediaResolution` | `String?` | `MediaResolutionLevel?` |
+| `GenerateContentRequest` | `toolConfig` | `Map<String, dynamic>?` | `ToolConfig?` |
+| `Tool` | `codeExecution` | `Map<String, dynamic>?` | `CodeExecution?` |
+| `Tool` | `urlContext` | `Map<String, dynamic>?` | `UrlContext?` |
+| `DynamicRetrievalConfig` | `mode` | `String?` | `DynamicRetrievalMode?` |
+| `ComputerUse` | `environment` | `String?` | `ComputerUseEnvironment?` |
+| `LiveGenerationConfig` | `responseModalities` | `List<String>?` | `List<ResponseModality>?` |
+
+```dart
+// Before (v3.x)
+GenerationConfig(responseModalities: ['TEXT', 'IMAGE'])
+Tool(urlContext: {})
+Tool(codeExecution: {})
+
+// After (v4.0.0)
+GenerationConfig(responseModalities: [ResponseModality.text, ResponseModality.image])
+Tool(urlContext: const UrlContext())
+Tool(codeExecution: const CodeExecution())
+```
+
+### 5) `copyWith` Sentinel Pattern
+
+`SpeechConfig`, `VoiceConfig`, `PrebuiltVoiceConfig`, and `SpeakerVoiceConfig` `copyWith` methods now use the `unsetCopyWithValue` sentinel pattern, allowing explicit null assignment. Parameters changed from typed nullable to `Object?`.
+
+---
+
 ## Migrating from v2.x to v3.0.0
 
 v3.0.0 introduces strongly-typed lists, updated Gemini 3.1 defaults, convenience helpers, and automatic batch model population.

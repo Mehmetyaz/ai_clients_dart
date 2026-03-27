@@ -1,3 +1,14 @@
+## 2.0.0
+
+> [!CAUTION]
+> This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.
+
+Replaces untyped `Object`/`Object?` fields with sealed union types (`KeepAlive`, `EmbedInput`, `StopSequence`) for improved type safety across request models. Also adds a `name` field to `RunningModel` from the upstream Ollama API update and overhauls README documentation with [llms.txt](llms.txt) ecosystem files.
+
+- **BREAKING** **REFACTOR**: Replace Object fields with sealed union types ([#120](https://github.com/davidmigloz/ai_clients_dart/issues/120)). ([5d7a4f24](https://github.com/davidmigloz/ai_clients_dart/commit/5d7a4f245f9c229bcb3df51c71fdd05658cdacfc))
+- **FEAT**: Add name field to RunningModel and update spec ([#142](https://github.com/davidmigloz/ai_clients_dart/issues/142)). ([4fc2e1bb](https://github.com/davidmigloz/ai_clients_dart/commit/4fc2e1bb74a21339efb014cb9ce35e2296a13fcc))
+- **DOCS**: Overhaul READMEs and add llms.txt ecosystem ([#149](https://github.com/davidmigloz/ai_clients_dart/issues/149)). ([98f11483](https://github.com/davidmigloz/ai_clients_dart/commit/98f114832f18f236ee4ab526ba2c34d53ad3d093))
+
 ## 1.4.1
 
 Fixed verification warnings in generated model classes.
@@ -42,7 +53,8 @@ Added `withApiKey` convenience constructor for simplified client initialization.
 
 ## 1.0.0
 
-> Note: This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.
+> [!CAUTION]
+> This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.
 
 **TL;DR**: Complete reimplementation with a new architecture, minimal dependencies, resource-based API, and improved developer experience. Hand-crafted models (no code generation), interceptor-driven architecture, comprehensive error handling, and full Ollama API coverage.
 
@@ -129,7 +141,8 @@ See **[MIGRATION.md](MIGRATION.md)** for step-by-step examples and mapping table
 
 ## 0.3.0
 
-> Note: This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.
+> [!CAUTION]
+> This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.
 
 - **FEAT**: Enhance CreateModelRequest with new fields ([#802](https://github.com/davidmigloz/langchain_dart/issues/802)). ([c5c73549](https://github.com/davidmigloz/langchain_dart/commit/c5c73549c51354996b2ca6bbce9d4c4c721fc159))
 - **FEAT**: Add tool_name and index support ([#800](https://github.com/davidmigloz/langchain_dart/issues/800)). ([f0f77286](https://github.com/davidmigloz/langchain_dart/commit/f0f77286c02c64ea7b75a011761e677fc168ffff))
@@ -172,7 +185,8 @@ See **[MIGRATION.md](MIGRATION.md)** for step-by-step examples and mapping table
 
 ## 0.2.0
 
-> Note: This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.
+> [!CAUTION]
+> This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.
 
 - **FEAT**: Add tool calling support ([#504](https://github.com/davidmigloz/langchain_dart/issues/504)). ([1ffdb41b](https://github.com/davidmigloz/langchain_dart/commit/1ffdb41b8f19941336c1cd911c73f0b3d46af975))
 - **BREAKING** **FEAT**: Update Ollama default model to llama-3.1 ([#506](https://github.com/davidmigloz/langchain_dart/issues/506)). ([b1134bf1](https://github.com/davidmigloz/langchain_dart/commit/b1134bf1163cdcea26a9f1e65fee5c515be3857c))
@@ -197,7 +211,8 @@ See **[MIGRATION.md](MIGRATION.md)** for step-by-step examples and mapping table
 
 ## 0.1.0
 
-> Note: This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.
+> [!CAUTION]
+> This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.
 
 - **BREAKING** **FEAT**: Align Ollama client to the Ollama v0.1.36 API  ([#411](https://github.com/davidmigloz/langchain_dart/issues/411)). ([326212ce](https://github.com/davidmigloz/langchain_dart/commit/326212ce4e4b035f7b29f4c810f447d5cf1731c4))
 - **FEAT**: Update Ollama default model from llama2 to llama3 ([#417](https://github.com/davidmigloz/langchain_dart/issues/417)). ([9d30b1a1](https://github.com/davidmigloz/langchain_dart/commit/9d30b1a1c811d73cfa27110b8c3c10b10da1801e))

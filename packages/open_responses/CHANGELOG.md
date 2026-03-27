@@ -1,3 +1,15 @@
+## 0.2.0
+
+> [!CAUTION]
+> This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.
+
+Replaces the `ServiceTier` enum with an extensible class to preserve provider-specific tier values on round-trip serialization, aligning with the [provider-agnostic OpenResponses specification](https://github.com/openresponses/openresponses/issues/51). Also standardizes equality helper locations, overhauls README documentation with [llms.txt](llms.txt) ecosystem files, and aligns compliance tests with the official OpenResponses CLI test runner.
+
+- **BREAKING** **FEAT**: Improve spec compliance for ServiceTier and ResponseError ([#133](https://github.com/davidmigloz/ai_clients_dart/issues/133)). ([487231d2](https://github.com/davidmigloz/ai_clients_dart/commit/487231d27677866f077ce7324d7003e8494e7261))
+- **REFACTOR**: Standardize equality helpers location across packages ([#123](https://github.com/davidmigloz/ai_clients_dart/issues/123)). ([34086102](https://github.com/davidmigloz/ai_clients_dart/commit/340861028e0958a50bb142519046f26a8a569b7c))
+- **DOCS**: Overhaul READMEs and add llms.txt ecosystem ([#149](https://github.com/davidmigloz/ai_clients_dart/issues/149)). ([98f11483](https://github.com/davidmigloz/ai_clients_dart/commit/98f114832f18f236ee4ab526ba2c34d53ad3d093))
+- **TEST**: Align compliance tests with official CLI test runner ([#134](https://github.com/davidmigloz/ai_clients_dart/issues/134)). ([f7919790](https://github.com/davidmigloz/ai_clients_dart/commit/f79197903518800357d096d8fe3fd7e13ff53037))
+
 ## 0.1.5
 
 Added `StreamingEventAccumulator` for assembling streamed response events into a complete response, convenience factories on `Item` for creating common message types (`userMessage`, `assistantMessage`, `functionCall`, etc.), and type-safe `ResponseInput` for building request input with compile-time safety. Also added `copyWith` methods to streaming events and several model classes.

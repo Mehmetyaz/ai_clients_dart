@@ -1,3 +1,10 @@
+## 1.1.1
+
+Standardizes equality helper locations and overhauls README documentation with [llms.txt](llms.txt) ecosystem files for improved LLM discoverability.
+
+- **REFACTOR**: Standardize equality helpers location across packages ([#123](https://github.com/davidmigloz/ai_clients_dart/issues/123)). ([34086102](https://github.com/davidmigloz/ai_clients_dart/commit/340861028e0958a50bb142519046f26a8a569b7c))
+- **DOCS**: Overhaul READMEs and add llms.txt ecosystem ([#149](https://github.com/davidmigloz/ai_clients_dart/issues/149)). ([98f11483](https://github.com/davidmigloz/ai_clients_dart/commit/98f114832f18f236ee4ab526ba2c34d53ad3d093))
+
 ## 1.1.0
 
 Updated to the latest ChromaDB OpenAPI spec. Adds new models (`Quantization`, `SpannIndexConfig`, `DeleteCollectionRecordsResponse`, `IndexStatusResponse`, `ReadLevel`), makes several `Collection` fields non-nullable to match the spec, and adds a `readLevel` parameter to records query/get methods.
@@ -27,7 +34,8 @@ Unified equality helpers across packages and updated dependencies.
 
 ## 1.0.0
 
-> Note: This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.
+> [!CAUTION]
+> This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.
 
 **TL;DR**: Complete reimplementation with a new architecture, minimal dependencies, unified resource-based API, and full ChromaDB v2 API coverage. Includes new Search API, Functions, multi-tenant management, automatic retry, and comprehensive exception handling.
 
@@ -91,7 +99,8 @@ See **[MIGRATION.md](MIGRATION.md)** for step-by-step examples and mapping table
 
 ## 0.3.0
 
-> Note: This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.
+> [!CAUTION]
+> This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.
 
 - **FEAT**: Upgrade to http v1.5.0 ([#785](https://github.com/davidmigloz/langchain_dart/issues/785)). ([f7c87790](https://github.com/davidmigloz/langchain_dart/commit/f7c8779011015b5a4a7f3a07dca32bde1bb2ea88))
 - **BREAKING** **BUILD**: Require Dart >=3.8.0 ([#792](https://github.com/davidmigloz/langchain_dart/issues/792)). ([b887f5c6](https://github.com/davidmigloz/langchain_dart/commit/b887f5c62e307b3a510c5049e3d1fbe7b7b4f4c9))
@@ -145,7 +154,8 @@ See **[MIGRATION.md](MIGRATION.md)** for step-by-step examples and mapping table
 
 ## 0.1.0
 
-> Note: This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.
+> [!CAUTION]
+> This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.
 
 - **BREAKING** **FEAT**: Multi-modal and tenants support ([#210](https://github.com/davidmigloz/langchain_dart/issues/210)). ([bfb0d89c](https://github.com/davidmigloz/langchain_dart/commit/bfb0d89cf82881090f6a50ee4d70b70f62e4302e))
 

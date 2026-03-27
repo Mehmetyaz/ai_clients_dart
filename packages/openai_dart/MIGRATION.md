@@ -6,6 +6,56 @@ For the complete list of changes, see [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
+## Migrating from v2.x to v3.0.0
+
+v3.0.0 replaces the `ServiceTier` enum with an extensible class, completes `ResponseError` fields, and removes `FileInputDetail`.
+
+### 1) `ServiceTier` Enum → Extensible Class
+
+`ServiceTier` is now a class instead of an enum. This preserves provider-specific tier values on round-trip serialization instead of mapping unknown values to a lossy `unknown` fallback.
+
+```dart
+// Before (v2.x)
+switch (tier) {
+  case ServiceTier.auto: ...
+  case ServiceTier.unknown: ...  // lossy — original value was lost
+}
+
+// After (v3.0.0)
+if (tier == ServiceTier.auto) { ... }
+// or switch with wildcard:
+switch (tier) {
+  case ServiceTier.auto: ...
+  case _: print(tier.value); // preserves original string
+}
+```
+
+Key changes:
+- `ServiceTier.unknown` removed — unknown values are represented by their actual string
+- `ServiceTier.values` no longer exists (enum-only API)
+- `switch` on `ServiceTier` is no longer exhaustive — requires a wildcard `_` case
+- Provider-specific tiers: `ServiceTier('batch')` now works
+
+### 2) `ResponseError` Updated
+
+- `ResponseError.code` changed from `String` to `String?`
+- `ResponseError` constructor now requires a `type` parameter
+- New `param` field added
+
+### 3) `FileInputDetail` Removed
+
+The `FileInputDetail` enum and `detail` parameter have been removed from `InputFileContent` and the `InputContent.fileUrl`/`fileId`/`fileData` factories.
+
+```dart
+// Before (v2.x)
+InputContent.fileUrl('https://example.com/doc.pdf', detail: FileInputDetail.high);
+
+// After (v3.0.0)
+InputContent.fileUrl('https://example.com/doc.pdf');
+```
+
+---
+
 ## Migrating from v0.x to v1.0.0
 
 This guide helps you migrate from the previous code-generated openai_dart package to the new hand-crafted v1.0.0 client.

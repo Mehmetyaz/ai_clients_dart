@@ -1,3 +1,18 @@
+## 4.0.0
+
+> [!CAUTION]
+> This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.
+
+Major update aligning with the latest Google AI spec. Adds `ToolType` enum, `ToolCall`/`ToolResponse` models, full Google Maps support in the Interactions API, and restructures `Annotation` from a flat class to a sealed class with `UrlCitation`, `FileCitation`, and `PlaceCitation` subtypes. Strengthens weak types across models by replacing raw `String?`, `List<String>?`, and `Map<String, dynamic>?` fields with proper Dart enums and typed classes (`ResponseModality`, `CodeExecution`, `UrlContext`, `MultiSpeakerVoiceConfig`). Also adds `ServiceTier` enum for generation request prioritization, fixes [Vertex AI base URL](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/learn/locations) handling for the `global` location, and adds [llms.txt](llms.txt) ecosystem files. The Live API client is compatible with the new [Gemini 3.1 Flash Live](https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-3-1-flash-live/) model for building conversational, multimodal agents with improved tool use and lower latency.
+
+- **BREAKING** **FEAT**: Align with latest Google AI spec ([#131](https://github.com/davidmigloz/ai_clients_dart/issues/131)). ([e4ab3166](https://github.com/davidmigloz/ai_clients_dart/commit/e4ab316645f054a8edbc77075af607d04fd73326))
+- **BREAKING** **FEAT**: Strengthen weak types across models ([#113](https://github.com/davidmigloz/ai_clients_dart/issues/113)). ([c24d0897](https://github.com/davidmigloz/ai_clients_dart/commit/c24d08970b101bf4a3942ca475c8089858679e1b))
+- **FEAT**: Add ServiceTier enum and serviceTier to GenerateContentRequest ([#139](https://github.com/davidmigloz/ai_clients_dart/issues/139)). ([253eb8e4](https://github.com/davidmigloz/ai_clients_dart/commit/253eb8e483e3c833581dca18cdc69ae40616f011))
+- **FIX**: Update base URL for Vertex AI to handle global location ([#146](https://github.com/davidmigloz/ai_clients_dart/issues/146)). ([9d6cbdcb](https://github.com/davidmigloz/ai_clients_dart/commit/9d6cbdcb4cfc2cdcc8ef90255b7b95b76b640033))
+- **DOCS**: Overhaul READMEs and add llms.txt ecosystem ([#149](https://github.com/davidmigloz/ai_clients_dart/issues/149)). ([98f11483](https://github.com/davidmigloz/ai_clients_dart/commit/98f114832f18f236ee4ab526ba2c34d53ad3d093))
+- **TEST**: Migrate Live API tests to gemini-3.1-flash-live-preview ([#147](https://github.com/davidmigloz/ai_clients_dart/issues/147)). ([1ed72c01](https://github.com/davidmigloz/ai_clients_dart/commit/1ed72c01f3e61d7475aef80747d968775cee42da))
+- **TEST**: Add TTS and STT integration tests ([#112](https://github.com/davidmigloz/ai_clients_dart/issues/112)). ([9c664da1](https://github.com/davidmigloz/ai_clients_dart/commit/9c664da17eaf5b8e894c0518f7850e6e4a58f00f))
+
 ## 3.6.0
 
 Updated Interactions API with new content types (file search call, image config) and improved model fields. Also fixed interactions streaming by moving the `stream` flag from a query parameter to the request body, matching the official Python SDK behavior.
@@ -57,7 +72,8 @@ Added thoughtSignature support for FunctionCallPart and ThoughtPart, pre-release
 
 ## 3.0.0
 
-> Note: This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.
+> [!CAUTION]
+> This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.
 
 - **FEAT**: add convenience helpers for improved DX ([#924](https://github.com/davidmigloz/langchain_dart/issues/924)). ([634b4f97](https://github.com/davidmigloz/langchain_dart/commit/634b4f970ec3264cddaa6e42d7d03fc8af3593ff))
 - **FEAT**: Update default models to Gemini 3 family ([#922](https://github.com/davidmigloz/langchain_dart/issues/922)). ([62bca9da](https://github.com/davidmigloz/langchain_dart/commit/62bca9da1abc4a64267c2d3085ad969cad33f4d6))
@@ -72,7 +88,8 @@ Added thoughtSignature support for FunctionCallPart and ThoughtPart, pre-release
 
 ## 2.0.0
 
-> Note: This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.
+> [!CAUTION]
+> This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.
 
 - **BREAKING** **FEAT**: Remove deprecated schema fields ([#848](https://github.com/davidmigloz/langchain_dart/issues/848)). ([e6d07ec4](https://github.com/davidmigloz/langchain_dart/commit/e6d07ec4a94d1b09e9dbd71f30904d510fb749c6))
 - **BREAKING** **FEAT**: Remove deprecated Chunks and query APIs ([#847](https://github.com/davidmigloz/langchain_dart/issues/847)). ([9cae76d5](https://github.com/davidmigloz/langchain_dart/commit/9cae76d534d45bcd36622216a0926bfbc8800d86))
@@ -101,7 +118,8 @@ Added thoughtSignature support for FunctionCallPart and ThoughtPart, pre-release
 
 ## 1.0.0
 
-> Note: This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.
+> [!CAUTION]
+> This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.
 
 **TL;DR**: Complete reimplementation with a new architecture, minimal dependencies, unified resource-based API, and full Gemini API coverage. Includes new Files, Batches, Caching, Corpora/RAG, RAG Stores, Dynamic Content, Permissions, Tuned Models, and Prediction (Veo) support.
 

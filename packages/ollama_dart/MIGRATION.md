@@ -6,6 +6,50 @@ For the complete list of changes, see [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
+## Migrating from v1.x to v2.0.0
+
+v2.0.0 replaces untyped `Object`/`Object?` fields with sealed union types for improved type safety.
+
+### 1) `keepAlive` → `KeepAlive` Sealed Type
+
+`ChatRequest.keepAlive`, `GenerateRequest.keepAlive`, and `EmbedRequest.keepAlive` changed from `Object?`/`String?` to `KeepAlive?`.
+
+```dart
+// Before (v1.x)
+ChatRequest(model: 'llama3', messages: [...], keepAlive: '5m');
+EmbedRequest(model: 'nomic', input: 'hello', keepAlive: '5m');
+
+// After (v2.0.0)
+ChatRequest(model: 'llama3', messages: [...], keepAlive: KeepAlive.duration('5m'));
+EmbedRequest(model: 'nomic', input: EmbedInput.string('hello'), keepAlive: KeepAlive.duration('5m'));
+```
+
+### 2) `EmbedRequest.input` → `EmbedInput` Sealed Type
+
+```dart
+// Before (v1.x)
+EmbedRequest(model: 'nomic', input: 'hello');            // Object
+EmbedRequest(model: 'nomic', input: ['hello', 'world']); // Object
+
+// After (v2.0.0)
+EmbedRequest(model: 'nomic', input: EmbedInput.string('hello'));
+EmbedRequest(model: 'nomic', input: EmbedInput.list(['hello', 'world']));
+```
+
+### 3) `ModelOptions.stop` → `StopSequence` Sealed Type
+
+```dart
+// Before (v1.x)
+ModelOptions(stop: '\n');            // Object?
+ModelOptions(stop: ['\n', 'END']);   // Object?
+
+// After (v2.0.0)
+ModelOptions(stop: StopSequence.string('\n'));
+ModelOptions(stop: StopSequence.list(['\n', 'END']));
+```
+
+---
+
 ## Migrating from v0.x to v1.0.0
 
 This guide helps you migrate from the old `ollama_dart` client (v0.x) to the new **v1.0.0** (complete rewrite with resource-based organization and improved architecture).

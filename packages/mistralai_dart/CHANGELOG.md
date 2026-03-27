@@ -1,3 +1,18 @@
+## 2.0.0
+
+> [!CAUTION]
+> This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.
+
+Major update to the latest Mistral AI spec. Renames `ModerationLLMV1Action` to `ModerationLLMAction`, adds Moderation V2 with 11 categories, guardrails on chat requests, `CustomConnectorTool`, 5 new `ContentPart` variants, and `UnknownContentPart` for forward compatibility. Replaces untyped `Object` fields with sealed union types (`MessageContent`, `EmbedInput`) for type safety across all `ChatMessage` variants. Adds [text-to-speech synthesis](https://mistral.ai/news/voxtral-tts) with streaming support, voice management with CRUD operations, `reasoningEffort` parameter, and [llms.txt](llms.txt) ecosystem files.
+
+- **BREAKING** **FEAT**: Update to latest Mistral AI OpenAPI spec ([#130](https://github.com/davidmigloz/ai_clients_dart/issues/130)). ([ac07542b](https://github.com/davidmigloz/ai_clients_dart/commit/ac07542b073875bc111f74577846d6d35484e64a))
+- **BREAKING** **REFACTOR**: Replace Object fields with sealed union types ([#119](https://github.com/davidmigloz/ai_clients_dart/issues/119)). ([014cc1dc](https://github.com/davidmigloz/ai_clients_dart/commit/014cc1dcf9cc5a29017caf9e050586d0bbc89e3f))
+- **BREAKING** **FEAT**: Add TTS, voice management, and reasoning effort support ([#140](https://github.com/davidmigloz/ai_clients_dart/issues/140)). ([8c99bd48](https://github.com/davidmigloz/ai_clients_dart/commit/8c99bd480b3b96e75c910fcf0d9bc7a936ca66a5))
+- **REFACTOR**: Standardize equality helpers location across packages ([#123](https://github.com/davidmigloz/ai_clients_dart/issues/123)). ([34086102](https://github.com/davidmigloz/ai_clients_dart/commit/340861028e0958a50bb142519046f26a8a569b7c))
+- **DOCS**: Overhaul READMEs and add llms.txt ecosystem ([#149](https://github.com/davidmigloz/ai_clients_dart/issues/149)). ([98f11483](https://github.com/davidmigloz/ai_clients_dart/commit/98f114832f18f236ee4ab526ba2c34d53ad3d093))
+- **TEST**: Add TTS and voice integration tests ([#148](https://github.com/davidmigloz/ai_clients_dart/issues/148)). ([f0ec0879](https://github.com/davidmigloz/ai_clients_dart/commit/f0ec08799fc81a6546b0bbf49df87530faea1f95))
+- **CHORE**: Clean up documentation.json configs and lift fineTuningModels exclusion ([#117](https://github.com/davidmigloz/ai_clients_dart/issues/117)). ([fdd03bf2](https://github.com/davidmigloz/ai_clients_dart/commit/fdd03bf2ec41b116fb0cb25eb1bf994a4e1c4100))
+
 ## 1.3.0
 
 This release adds inline streaming error detection and updates the API spec to the latest version with new models and capabilities including agent aliases, guardrail configuration, tool call confirmations, and batch request types.
@@ -31,7 +46,8 @@ Added `withApiKey` convenience constructor and replaced `Object? stop` with a ty
 
 ## 1.0.0
 
-> Note: This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.
+> [!CAUTION]
+> This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.
 
 **TL;DR**: Complete reimplementation with a new architecture, minimal dependencies, resource-based API, and improved developer experience. Hand-crafted models (no code generation), interceptor-driven architecture, comprehensive error handling, and full Mistral AI API coverage including stable and beta endpoints.
 
@@ -111,7 +127,8 @@ See **[MIGRATION.md](MIGRATION.md)** for step-by-step examples and mapping table
 
 ## 0.1.0
 
-> Note: This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.
+> [!CAUTION]
+> This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.
 
 - **FIX**: Add missing usage field to ChatCompletionStreamResponse in mistralai_dart ([#795](https://github.com/davidmigloz/langchain_dart/issues/795)). ([4da75561](https://github.com/davidmigloz/langchain_dart/commit/4da75561b173313479f50441bf318bd4b948032d))
 - **FIX**: Handle optional space after colon in SSE parser in mistralai_dart ([#791](https://github.com/davidmigloz/langchain_dart/issues/791)). ([cefb1d2f](https://github.com/davidmigloz/langchain_dart/commit/cefb1d2f124ba64da60e3f33ec16672542cae28c))
