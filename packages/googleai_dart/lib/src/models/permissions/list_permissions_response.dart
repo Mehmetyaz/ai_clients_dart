@@ -1,9 +1,11 @@
-// ignore_for_file: avoid_equals_and_hash_code_on_mutable_classes
+import 'package:collection/collection.dart';
+import 'package:meta/meta.dart';
 
 import '../copy_with_sentinel.dart';
 import 'permission.dart';
 
 /// Response message for listing permissions.
+@immutable
 class ListPermissionsResponse {
   /// List of permissions for the resource.
   final List<Permission>? permissions;
@@ -41,11 +43,16 @@ class ListPermissionsResponse {
       identical(this, other) ||
       other is ListPermissionsResponse &&
           runtimeType == other.runtimeType &&
-          permissions == other.permissions &&
+          const ListEquality<Permission>().equals(
+            permissions,
+            other.permissions,
+          ) &&
           nextPageToken == other.nextPageToken;
 
   @override
-  int get hashCode => permissions.hashCode ^ nextPageToken.hashCode;
+  int get hashCode =>
+      const ListEquality<Permission>().hash(permissions) ^
+      nextPageToken.hashCode;
 
   /// Creates a copy with replaced values.
   ListPermissionsResponse copyWith({

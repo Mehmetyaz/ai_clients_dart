@@ -1,6 +1,6 @@
-// ignore_for_file: avoid_print
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer' as developer;
 
 import 'package:logging/logging.dart';
 import 'package:web_socket_channel/status.dart' as status;
@@ -124,9 +124,13 @@ class RealtimeAPI extends RealtimeEventHandler {
       final logger = Logger('openai_realtime_dart');
       _logSubscription = logger.onRecord.listen((record) {
         if (record.level >= Level.INFO) {
-          print(
-            '[${record.loggerName}/${record.time.toIso8601String()}]: '
-            '${record.message} ${record.error ?? ""}',
+          developer.log(
+            record.message,
+            name: record.loggerName,
+            level: record.level.value,
+            error: record.error,
+            stackTrace: record.stackTrace,
+            time: record.time,
           );
         }
       });
