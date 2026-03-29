@@ -2751,6 +2751,67 @@ class ApiToolkitCommandTests(unittest.TestCase):
             self.assertEqual(exit_code, 1)
             self.assertTrue(any("Enum fallback value" in issue["message"] for issue in payload["results"]["implementation"]["issues"]))
 
+    def test_verify_enum_inline_fallback_via_enum_values(self) -> None:
+        """When spec has no schema for an inline enum, manifest enum_values are used."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            self._write_workspace(root)
+            self._write_repo_license(root)
+            package_root, config_dir = self._create_openapi_config(root)
+            (package_root / "specs" / "openapi.json").write_text(
+                json.dumps(
+                    {
+                        "openapi": "3.1.0",
+                        "info": {"title": "Sample", "version": "1"},
+                        "paths": {},
+                        "components": {"schemas": {}},
+                    }
+                )
+            )
+            self._write_specs_and_manifest(
+                config_dir,
+                specs_payload={
+                    "specs": {"main": {"name": "Sample", "local_file": "openapi.json", "fetch_mode": "local_file", "source_file": "specs/openapi.json"}},
+                    "specs_dir": "packages/sample_dart/specs",
+                    "output_dir": str(root / "tmp" / "sample"),
+                },
+                manifest_payload={
+                    "surface": "openapi",
+                    "type_mappings": {},
+                    "placement": {"categories": {}, "default_category": "common", "parent_model_patterns": {}},
+                    "coverage": {},
+                    "types": {
+                        "InlineRole": {
+                            "spec": "main",
+                            "kind": "enum",
+                            "dart_class": "InlineRole",
+                            "file": "lib/src/models/common/inline_role.dart",
+                            "schema": "InlineRole",
+                            "enum_values": ["user", "assistant"],
+                        }
+                    },
+                },
+            )
+            (package_root / "lib" / "src" / "models" / "common" / "inline_role.dart").write_text(
+                "enum InlineRole {\n"
+                "  user,\n"
+                "  assistant,\n"
+                "  unknown,\n"
+                "}\n"
+            )
+
+            exit_code, payload = command_verify(
+                SimpleNamespace(config_dir=config_dir, spec_name=None, checks="implementation", scope="all", type_name=None, baseline=None, git_ref=None)
+            )
+
+            issues = payload["results"]["implementation"]["issues"]
+            # Should NOT have "No enum values found" error (fallback to enum_values).
+            self.assertFalse(
+                any("No enum values found" in issue["message"] for issue in issues),
+                f"Expected no 'No enum values found' error, got: {issues}",
+            )
+            self.assertEqual(exit_code, 0)
+
     def test_verify_coverage_gap_is_blocking(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
@@ -3040,6 +3101,43 @@ class ApiToolkitCommandTests(unittest.TestCase):
             self.assertEqual(result["coverage_summary"]["excluded_from_examples"], ["beta"])
             self.assertTrue(any(issue["level"] == "warning" and "documentation.json excludes" in issue["message"] for issue in result["issues"]))
             self.assertEqual(payload["summary"]["warning_checks"], ["docs"])
+
+    def test_verify_docs_resource_in_readme_display_name_fallback(self) -> None:
+        """Resource mentioned by display name in prose (not client.X) should not be flagged as missing."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            self._write_workspace(root)
+            self._write_repo_license(root)
+            package_root, config_dir = self._create_openapi_config(root)
+            self._write_specs_and_manifest(
+                config_dir,
+                specs_payload={
+                    "specs": {"main": {"name": "Sample API", "local_file": "openapi.json", "fetch_mode": "local_file", "source_file": "specs/openapi.json"}},
+                    "specs_dir": "packages/sample_dart/specs",
+                    "output_dir": str(root / "tmp" / "sample"),
+                },
+            )
+            (package_root / "specs" / "openapi.json").write_text(
+                json.dumps({"openapi": "3.1.0", "info": {"title": "Sample", "version": "1"}, "paths": {}, "components": {"schemas": {}}})
+            )
+            # Create a resource discovered from lib/src/resources/
+            (package_root / "lib" / "src" / "resources" / "cached_contents_resource.dart").write_text("class CachedContentsResource {}\n")
+            # README mentions the resource via display name (space-separated) but NOT via client.cachedContents
+            self._write_canonical_readme(package_root)
+            readme = (package_root / "README.md").read_text()
+            readme += "\n## API Coverage\n\n| API | Status |\n|-----|--------|\n| Cached contents | ✅ Full |\n\n"
+            (package_root / "README.md").write_text(readme)
+
+            exit_code, payload = command_verify(
+                SimpleNamespace(config_dir=config_dir, spec_name=None, checks="docs", scope="all", type_name=None, baseline=None, git_ref=None)
+            )
+
+            issues = payload["results"]["docs"]["issues"]
+            # The display-name fallback should match "cached contents" in the table.
+            self.assertFalse(
+                any("cached_contents" in issue.get("name", "") and "missing from README" in issue.get("message", "") for issue in issues),
+                f"Expected no 'missing from README' error for cached_contents, got: {issues}",
+            )
 
     def test_verify_changed_scope_checks_parent_for_changed_skipped_variant(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -4500,6 +4598,268 @@ class ApiToolkitCommandTests(unittest.TestCase):
         # Now it should detect ResponseToolBlock is missing.
         self.assertEqual(len(issues_with), 1)
         self.assertIn("ResponseToolBlock", issues_with[0]["message"])
+
+    def test_verify_sealed_parent_variant_coverage_ancestor_mapping(self) -> None:
+        """Missing members covered by an ancestor discriminator should not warn."""
+        # Hierarchy: Item → MessageItem → InputMessage/OutputMessage
+        # Item's discriminator covers MessageItem and FunctionCallItem.
+        # MessageItem's discriminator covers InputMessage and OutputMessage.
+        # The spec union references all concrete types — MessageItem should not
+        # warn about FunctionCallItem because Item's mapping covers it.
+        grandparent = ManifestEntry(
+            key="Item",
+            spec="main",
+            kind="sealed_parent",
+            dart_class="Item",
+            file="lib/src/models/item.dart",
+            schema=None,
+            discriminator={
+                "field": "type",
+                "mapping": {
+                    "MessageItem": "message",
+                    "FunctionCallItem": "function_call",
+                },
+            },
+        )
+        parent = ManifestEntry(
+            key="MessageItem",
+            spec="main",
+            kind="sealed_parent",
+            dart_class="MessageItem",
+            file="lib/src/models/item.dart",
+            schema=None,
+            parent="Item",
+            discriminator={
+                "field": "role",
+                "mapping": {
+                    "InputMessage": "user",
+                    "OutputMessage": "assistant",
+                },
+            },
+        )
+        all_types = {
+            "Item": grandparent,
+            "MessageItem": parent,
+        }
+        spec_payload = {
+            "components": {
+                "schemas": {
+                    "ItemUnion": {
+                        "anyOf": [
+                            {"$ref": "#/components/schemas/InputMessage"},
+                            {"$ref": "#/components/schemas/OutputMessage"},
+                            {"$ref": "#/components/schemas/FunctionCallItem"},
+                        ],
+                    },
+                    "InputMessage": {"type": "object", "properties": {}},
+                    "OutputMessage": {"type": "object", "properties": {}},
+                    "FunctionCallItem": {"type": "object", "properties": {}},
+                }
+            }
+        }
+        issues = _verify_sealed_parent_variant_coverage(parent, spec_payload, all_types=all_types)
+        # FunctionCallItem is covered by ancestor Item's mapping — no warnings expected.
+        self.assertEqual(issues, [])
+
+    def test_verify_sealed_parent_variant_coverage_ancestor_skips_no_discriminator(self) -> None:
+        """Ancestor without discriminator should not stop the walk."""
+        # Hierarchy: Root → Middle (no discriminator) → Leaf
+        # Root has a discriminator that covers Sibling.
+        root = ManifestEntry(
+            key="Root",
+            spec="main",
+            kind="sealed_parent",
+            dart_class="Root",
+            file="lib/src/models/root.dart",
+            schema=None,
+            discriminator={
+                "field": "type",
+                "mapping": {
+                    "Sibling": "sibling",
+                    "Middle": "middle",
+                },
+            },
+        )
+        middle = ManifestEntry(
+            key="Middle",
+            spec="main",
+            kind="sealed_parent",
+            dart_class="Middle",
+            file="lib/src/models/root.dart",
+            schema=None,
+            parent="Root",
+            # No discriminator on this intermediate level.
+        )
+        leaf = ManifestEntry(
+            key="Leaf",
+            spec="main",
+            kind="sealed_parent",
+            dart_class="Leaf",
+            file="lib/src/models/root.dart",
+            schema=None,
+            parent="Middle",
+            discriminator={
+                "field": "kind",
+                "mapping": {
+                    "LeafA": "a",
+                },
+            },
+        )
+        all_types = {"Root": root, "Middle": middle, "Leaf": leaf}
+        spec_payload = {
+            "components": {
+                "schemas": {
+                    "LeafUnion": {
+                        "anyOf": [
+                            {"$ref": "#/components/schemas/LeafA"},
+                            {"$ref": "#/components/schemas/Sibling"},
+                        ],
+                    },
+                    "LeafA": {"type": "object", "properties": {}},
+                    "Sibling": {"type": "object", "properties": {}},
+                }
+            }
+        }
+        issues = _verify_sealed_parent_variant_coverage(leaf, spec_payload, all_types=all_types)
+        # Sibling is covered by Root's mapping — walk should continue past Middle.
+        self.assertEqual(issues, [])
+
+    def test_verify_sealed_parent_variant_coverage_ancestor_dart_class_keys(self) -> None:
+        """Ancestor mapping with Dart class keys should cross-reference to schema names."""
+        grandparent = ManifestEntry(
+            key="Item",
+            spec="main",
+            kind="sealed_parent",
+            dart_class="Item",
+            file="lib/src/models/item.dart",
+            schema=None,
+            discriminator={
+                "field": "type",
+                "mapping": {
+                    # Dart class name as key (differs from schema name)
+                    "FnCallItem": "function_call",
+                },
+            },
+        )
+        fn_call_variant = ManifestEntry(
+            key="FunctionCallItem",
+            spec="main",
+            kind="sealed_variant",
+            dart_class="FnCallItem",
+            file="lib/src/models/item.dart",
+            schema="FunctionCallItem",
+            parent="Item",
+        )
+        child = ManifestEntry(
+            key="MessageItem",
+            spec="main",
+            kind="sealed_parent",
+            dart_class="MessageItem",
+            file="lib/src/models/item.dart",
+            schema=None,
+            parent="Item",
+            discriminator={
+                "field": "role",
+                "mapping": {
+                    "InputMessage": "user",
+                },
+            },
+        )
+        all_types = {
+            "Item": grandparent,
+            "FunctionCallItem": fn_call_variant,
+            "MessageItem": child,
+        }
+        spec_payload = {
+            "components": {
+                "schemas": {
+                    "ItemUnion": {
+                        "anyOf": [
+                            {"$ref": "#/components/schemas/InputMessage"},
+                            {"$ref": "#/components/schemas/FunctionCallItem"},
+                        ],
+                    },
+                    "InputMessage": {"type": "object", "properties": {}},
+                    "FunctionCallItem": {"type": "object", "properties": {}},
+                }
+            }
+        }
+        issues = _verify_sealed_parent_variant_coverage(child, spec_payload, all_types=all_types)
+        # FunctionCallItem should be resolved via ancestor dart_to_schema cross-reference.
+        self.assertEqual(issues, [])
+
+    def test_verify_sealed_parent_variant_coverage_skip_non_object(self) -> None:
+        """Non-object union members (e.g., string enums) should be skipped."""
+        entry = ManifestEntry(
+            key="ContentPart",
+            spec="main",
+            kind="sealed_parent",
+            dart_class="ContentPart",
+            file="lib/src/models/content_part.dart",
+            schema=None,
+            discriminator={
+                "field": "type",
+                "mapping": {
+                    "TextPart": "text",
+                },
+            },
+        )
+        spec_payload = {
+            "components": {
+                "schemas": {
+                    "ContentPartUnion": {
+                        "anyOf": [
+                            {"$ref": "#/components/schemas/TextPart"},
+                            {"$ref": "#/components/schemas/ContentPartRole"},
+                        ],
+                    },
+                    "TextPart": {"type": "object", "properties": {}},
+                    "ContentPartRole": {"type": "string", "enum": ["user", "assistant"]},
+                }
+            }
+        }
+        issues = _verify_sealed_parent_variant_coverage(entry, spec_payload)
+        # ContentPartRole is a string enum — should be skipped, no warning.
+        self.assertEqual(issues, [])
+
+    def test_verify_sealed_parent_variant_coverage_skip_non_object_array_type(self) -> None:
+        """OpenAPI 3.1 array-typed type field: nullable objects should not be skipped."""
+        entry = ManifestEntry(
+            key="ContentPart",
+            spec="main",
+            kind="sealed_parent",
+            dart_class="ContentPart",
+            file="lib/src/models/content_part.dart",
+            schema=None,
+            discriminator={
+                "field": "type",
+                "mapping": {
+                    "TextPart": "text",
+                },
+            },
+        )
+        spec_payload = {
+            "components": {
+                "schemas": {
+                    "ContentPartUnion": {
+                        "anyOf": [
+                            {"$ref": "#/components/schemas/TextPart"},
+                            {"$ref": "#/components/schemas/NullableObject"},
+                            {"$ref": "#/components/schemas/StringEnum"},
+                        ],
+                    },
+                    "TextPart": {"type": "object", "properties": {}},
+                    # OpenAPI 3.1 nullable object — should NOT be skipped.
+                    "NullableObject": {"type": ["object", "null"], "properties": {}},
+                    # OpenAPI 3.1 nullable string — should be skipped.
+                    "StringEnum": {"type": ["string", "null"], "enum": ["a", "b"]},
+                }
+            }
+        }
+        issues = _verify_sealed_parent_variant_coverage(entry, spec_payload)
+        # NullableObject should warn (it's an object), StringEnum should not.
+        self.assertEqual(len(issues), 1)
+        self.assertIn("NullableObject", issues[0]["message"])
 
     def test_verify_docs_respects_nested_short_key_exclusions(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
