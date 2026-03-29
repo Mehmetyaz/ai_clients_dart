@@ -4,8 +4,9 @@ import '../common/copy_with_sentinel.dart';
 
 /// A part of a multimodal message content.
 ///
-/// Content parts allow user messages to contain multiple types of content,
-/// including text, images, and audio.
+/// Content parts allow messages to contain multiple types of content.
+/// User messages support text, images, audio, and files.
+/// Assistant messages support text and refusal.
 ///
 /// ## Example
 ///
@@ -31,6 +32,8 @@ sealed class ContentPart {
       'text' => TextContentPart.fromJson(json),
       'image_url' => ImageContentPart.fromJson(json),
       'input_audio' => AudioContentPart.fromJson(json),
+      'file' => FileContentPart.fromJson(json),
+      'refusal' => RefusalContentPart.fromJson(json),
       _ => throw FormatException('Unknown content part type: $type'),
     };
   }
@@ -54,6 +57,29 @@ sealed class ContentPart {
     required String data,
     required AudioFormat format,
   }) => AudioContentPart(data: data, format: format);
+
+  /// Creates a file content part from an uploaded file ID.
+  static ContentPart file({required String fileId, String? filename}) =>
+      FileContentPart(fileId: fileId, filename: filename);
+
+  /// Creates a file content part from base64-encoded file data.
+  ///
+  /// The [data] should be a base64-encoded string representing the file bytes.
+  /// The [mediaType] specifies the MIME type (e.g., `'application/pdf'`).
+  /// These are combined into a data URL (`data:<mediaType>;base64,<data>`) as
+  /// required by the API.
+  static ContentPart fileData({
+    required String data,
+    required String mediaType,
+    String? filename,
+  }) => FileContentPart(
+    fileData: 'data:$mediaType;base64,$data',
+    filename: filename,
+  );
+
+  /// Creates a refusal content part.
+  static ContentPart refusal(String refusal) =>
+      RefusalContentPart(refusal: refusal);
 
   /// The type of this content part.
   String get type;
@@ -222,6 +248,126 @@ class AudioContentPart extends ContentPart {
 
   @override
   String toString() => 'ContentPart.inputAudio(${format.name})';
+}
+
+/// A file content part for document/file inputs.
+///
+/// Allows sending files (such as PDFs) as part of user messages.
+/// Files can be referenced by an uploaded file ID or provided as
+/// base64-encoded data.
+///
+/// Learn about [file inputs](https://platform.openai.com/docs/guides/text)
+/// for text generation.
+@immutable
+class FileContentPart extends ContentPart {
+  /// Creates a [FileContentPart].
+  const FileContentPart({this.fileId, this.fileData, this.filename});
+
+  /// Creates a [FileContentPart] from JSON.
+  factory FileContentPart.fromJson(Map<String, dynamic> json) {
+    final file = json['file'] as Map<String, dynamic>;
+    return FileContentPart(
+      fileId: file['file_id'] as String?,
+      fileData: file['file_data'] as String?,
+      filename: file['filename'] as String?,
+    );
+  }
+
+  /// The ID of an uploaded file to use as input.
+  final String? fileId;
+
+  /// The file data as a data URL (e.g., `data:application/pdf;base64,<data>`).
+  ///
+  /// Use [ContentPart.fileData] to construct this from a base64-encoded string.
+  final String? fileData;
+
+  /// The name of the file.
+  final String? filename;
+
+  @override
+  String get type => 'file';
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'type': type,
+    'file': {
+      if (fileId != null) 'file_id': fileId,
+      if (fileData != null) 'file_data': fileData,
+      if (filename != null) 'filename': filename,
+    },
+  };
+
+  /// Creates a copy with the given fields replaced.
+  FileContentPart copyWith({
+    Object? fileId = unsetCopyWithValue,
+    Object? fileData = unsetCopyWithValue,
+    Object? filename = unsetCopyWithValue,
+  }) {
+    return FileContentPart(
+      fileId: fileId == unsetCopyWithValue ? this.fileId : fileId as String?,
+      fileData: fileData == unsetCopyWithValue
+          ? this.fileData
+          : fileData as String?,
+      filename: filename == unsetCopyWithValue
+          ? this.filename
+          : filename as String?,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is FileContentPart &&
+          runtimeType == other.runtimeType &&
+          fileId == other.fileId &&
+          fileData == other.fileData &&
+          filename == other.filename;
+
+  @override
+  int get hashCode => Object.hash(fileId, fileData, filename);
+
+  @override
+  String toString() =>
+      'ContentPart.file(fileId: $fileId, hasFileData: ${fileData != null}, filename: $filename)';
+}
+
+/// A refusal content part indicating the model declined to respond.
+@immutable
+class RefusalContentPart extends ContentPart {
+  /// Creates a [RefusalContentPart].
+  const RefusalContentPart({required this.refusal});
+
+  /// Creates a [RefusalContentPart] from JSON.
+  factory RefusalContentPart.fromJson(Map<String, dynamic> json) {
+    return RefusalContentPart(refusal: json['refusal'] as String);
+  }
+
+  /// The refusal message generated by the model.
+  final String refusal;
+
+  @override
+  String get type => 'refusal';
+
+  @override
+  Map<String, dynamic> toJson() => {'type': type, 'refusal': refusal};
+
+  /// Creates a copy with the given fields replaced.
+  RefusalContentPart copyWith({String? refusal}) {
+    return RefusalContentPart(refusal: refusal ?? this.refusal);
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RefusalContentPart &&
+          runtimeType == other.runtimeType &&
+          refusal == other.refusal;
+
+  @override
+  int get hashCode => refusal.hashCode;
+
+  @override
+  String toString() => 'ContentPart.refusal($refusal)';
 }
 
 /// Image detail level for vision models.
