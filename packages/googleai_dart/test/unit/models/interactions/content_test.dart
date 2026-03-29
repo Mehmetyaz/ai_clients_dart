@@ -30,7 +30,7 @@ void main() {
         final json = {'type': 'text'};
         final content = InteractionContent.fromJson(json);
         expect(content, isA<TextContent>());
-        expect((content as TextContent).text, isNull);
+        expect((content as TextContent).text, '');
       });
 
       test('roundtrip serialization', () {
@@ -178,6 +178,27 @@ void main() {
         const content = ImageContent(uri: 'gs://bucket/image.png');
         expect(content.uri, 'gs://bucket/image.png');
       });
+
+      test('roundtrip MediaResolution enum', () {
+        const content = ImageContent(
+          data: 'img',
+          resolution: InteractionMediaResolution.ultraHigh,
+        );
+        final json = content.toJson();
+        expect(json['resolution'], 'ultra_high');
+
+        final restored = InteractionContent.fromJson(json) as ImageContent;
+        expect(restored.resolution, InteractionMediaResolution.ultraHigh);
+      });
+
+      test('all MediaResolution values roundtrip', () {
+        for (final value in InteractionMediaResolution.values) {
+          final content = ImageContent(data: 'x', resolution: value);
+          final restored =
+              InteractionContent.fromJson(content.toJson()) as ImageContent;
+          expect(restored.resolution, value);
+        }
+      });
     });
 
     group('AudioContent', () {
@@ -219,6 +240,18 @@ void main() {
         };
         final content = InteractionContent.fromJson(json);
         expect(content, isA<VideoContent>());
+      });
+
+      test('roundtrip MediaResolution enum', () {
+        const content = VideoContent(
+          data: 'vid',
+          resolution: InteractionMediaResolution.high,
+        );
+        final json = content.toJson();
+        expect(json['resolution'], 'high');
+
+        final restored = InteractionContent.fromJson(json) as VideoContent;
+        expect(restored.resolution, InteractionMediaResolution.high);
       });
     });
 
@@ -335,7 +368,7 @@ void main() {
           result: ToolResultObject({'temp': 72}),
         );
         expect(content.result, isA<ToolResultObject>());
-        expect((content.result! as ToolResultObject).value, {'temp': 72});
+        expect((content.result as ToolResultObject).value, {'temp': 72});
         expect(content.callId, 'call-123');
         expect(content.type, 'function_result');
       });
@@ -490,6 +523,39 @@ void main() {
         expect(content, isA<FileSearchResultContent>());
         expect((content as FileSearchResultContent).callId, 'call_123');
       });
+
+      test('roundtrip customMetadata on FileSearchResult', () {
+        final json = {
+          'type': 'file_search_result',
+          'call_id': 'call_456',
+          'result': [
+            {
+              'custom_metadata': [
+                {'key': 'author', 'value': 'Alice'},
+                {'key': 'date', 'value': '2025-01-01'},
+              ],
+            },
+            <String, dynamic>{},
+          ],
+          'signature': 'sig789',
+        };
+        final content =
+            InteractionContent.fromJson(json) as FileSearchResultContent;
+        expect(content.callId, 'call_456');
+        expect(content.result, hasLength(2));
+        expect(content.result[0].customMetadata, hasLength(2));
+        expect(content.result[0].customMetadata![0]['key'], 'author');
+        expect(content.result[0].customMetadata![1]['value'], '2025-01-01');
+        expect(content.result[1].customMetadata, isNull);
+
+        // Roundtrip
+        final restored =
+            InteractionContent.fromJson(content.toJson())
+                as FileSearchResultContent;
+        expect(restored.result[0].customMetadata, hasLength(2));
+        expect(restored.result[0].customMetadata![0]['key'], 'author');
+        expect(restored.result[1].customMetadata, isNull);
+      });
     });
 
     group('GoogleMapsCallContent', () {
@@ -557,11 +623,11 @@ void main() {
         expect(maps.callId, 'call-maps-1');
         expect(maps.signature, 'sig456');
         expect(maps.result, hasLength(1));
-        expect(maps.result![0].places, hasLength(1));
-        expect(maps.result![0].places![0].name, 'Pizza Place');
-        expect(maps.result![0].places![0].placeId, 'ChIJ123');
-        expect(maps.result![0].places![0].reviewSnippets, hasLength(1));
-        expect(maps.result![0].widgetContextToken, 'token123');
+        expect(maps.result[0].places, hasLength(1));
+        expect(maps.result[0].places![0].name, 'Pizza Place');
+        expect(maps.result[0].places![0].placeId, 'ChIJ123');
+        expect(maps.result[0].places![0].reviewSnippets, hasLength(1));
+        expect(maps.result[0].widgetContextToken, 'token123');
       });
 
       test('roundtrip serialization', () {
@@ -578,7 +644,7 @@ void main() {
         final restored =
             InteractionContent.fromJson(json) as GoogleMapsResultContent;
         expect(restored.callId, original.callId);
-        expect(restored.result![0].places![0].name, 'Test Place');
+        expect(restored.result[0].places![0].name, 'Test Place');
       });
     });
 

@@ -33,26 +33,42 @@ void main() {
         expect(interaction.text, isNull);
       });
 
-      test('skips TextContent with null text (content.start events)', () {
+      test('concatenates multiple TextContent outputs', () {
         const interaction = Interaction(
           id: 'test-id',
           status: InteractionStatus.completed,
           outputs: [
-            TextContent(),
             TextContent(text: 'Hello'),
-            TextContent(),
+            TextContent(text: ' World'),
           ],
         );
-        expect(interaction.text, 'Hello');
+        expect(interaction.text, 'Hello World');
       });
 
-      test('returns null when only null-text outputs', () {
+      test('returns null for only empty TextContent outputs', () {
         const interaction = Interaction(
           id: 'test-id',
           status: InteractionStatus.completed,
-          outputs: [TextContent()],
+          outputs: [
+            TextContent(text: ''),
+            TextContent(text: ''),
+          ],
         );
         expect(interaction.text, isNull);
+      });
+
+      test('skips empty TextContent when concatenating', () {
+        const interaction = Interaction(
+          id: 'test-id',
+          status: InteractionStatus.completed,
+          outputs: [
+            TextContent(text: ''),
+            TextContent(text: 'Hello'),
+            TextContent(text: ''),
+            TextContent(text: ' World'),
+          ],
+        );
+        expect(interaction.text, 'Hello World');
       });
 
       test('skips non-text outputs', () {
@@ -263,9 +279,9 @@ void main() {
           id: 'test-id',
           status: InteractionStatus.completed,
           outputs: [
-            GoogleMapsResultContent(callId: 'mc-1'),
+            GoogleMapsResultContent(callId: 'mc-1', result: []),
             TextContent(text: 'Text'),
-            GoogleMapsResultContent(callId: 'mc-2'),
+            GoogleMapsResultContent(callId: 'mc-2', result: []),
           ],
         );
         expect(interaction.googleMapsResultOutputs, hasLength(2));
