@@ -1,3 +1,10 @@
+## 2.1.0
+
+Adds `ToolFileContentPart` and `ToolReferenceContentPart` sealed variants to `ContentPart` for built-in tool output content (code interpreter files, web search references). Also adds `unknown` fallback values to `ReasoningEffort` and `SpeechOutputFormat` enums for forward compatibility.
+
+- **FEAT**: Add tool content parts and enum fallbacks ([#158](https://github.com/davidmigloz/ai_clients_dart/issues/158)). ([248a7051](https://github.com/davidmigloz/ai_clients_dart/commit/248a7051b7b92d1a623c5ef339075dd6893e318b))
+- **DOCS**: Overhaul root README and add semver bullet to all packages ([#151](https://github.com/davidmigloz/ai_clients_dart/issues/151)). ([e6af33dd](https://github.com/davidmigloz/ai_clients_dart/commit/e6af33dd9eee225777f9007b2da571da075c19d3))
+
 ## 2.0.0
 
 > [!CAUTION]

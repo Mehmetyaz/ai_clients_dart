@@ -1,3 +1,14 @@
+## 0.3.0
+
+> [!CAUTION]
+> This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.
+
+The `InputFileContent.data()` factory now requires a `mediaType` parameter and constructs proper data URL format instead of passing raw base64 (which was rejected by the API). Also adds the missing `ReasoningItemParam` manifest entry and `copyWith` method to `ReasoningInputItem`.
+
+- **BREAKING** **FEAT**: Require `mediaType` in `InputFileContent.data()` for data URL construction ([#152](https://github.com/davidmigloz/ai_clients_dart/issues/152)). ([821eea60](https://github.com/davidmigloz/ai_clients_dart/commit/821eea60a630daf17c14df3cf4c04ade8fe296b9))
+- **FIX**: Add missing ReasoningItemParam manifest entry and copyWith ([#160](https://github.com/davidmigloz/ai_clients_dart/issues/160)). ([0752275b](https://github.com/davidmigloz/ai_clients_dart/commit/0752275b852ee2cb9efb345bf390f20bb1c4b1ad))
+- **DOCS**: Overhaul root README and add semver bullet to all packages ([#151](https://github.com/davidmigloz/ai_clients_dart/issues/151)). ([e6af33dd](https://github.com/davidmigloz/ai_clients_dart/commit/e6af33dd9eee225777f9007b2da571da075c19d3))
+
 ## 0.2.0
 
 > [!CAUTION]

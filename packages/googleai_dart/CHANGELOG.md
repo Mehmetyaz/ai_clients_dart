@@ -1,3 +1,14 @@
+## 5.0.0
+
+> [!CAUTION]
+> This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.
+
+Updates the interactions OpenAPI spec with the new `ContentDeltaData` schema and `FileSearchResult.customMetadata` property, and makes 21 spec-required fields non-nullable across 15 interaction content types — aligned with the official Python SDK. Adds `InteractionMediaResolution` enum for type-safe resolution fields in image/video content and delta types. Also fixes list equality in `ListPermissionsResponse` to use deep comparison and replaces unnecessary lint ignores with proper fixes.
+
+- **BREAKING** **FEAT**: Update interactions spec and enforce required fields ([#157](https://github.com/davidmigloz/ai_clients_dart/issues/157)). ([741bb991](https://github.com/davidmigloz/ai_clients_dart/commit/741bb99176f4d99b629f9675cf02a8463c263d53))
+- **REFACTOR**: Remove unnecessary lint ignores ([#154](https://github.com/davidmigloz/ai_clients_dart/issues/154)). ([230f4929](https://github.com/davidmigloz/ai_clients_dart/commit/230f492914029a1754a1f00d3fcbd93cb46c8fb0))
+- **DOCS**: Overhaul root README and add semver bullet to all packages ([#151](https://github.com/davidmigloz/ai_clients_dart/issues/151)). ([e6af33dd](https://github.com/davidmigloz/ai_clients_dart/commit/e6af33dd9eee225777f9007b2da571da075c19d3))
+
 ## 4.0.0
 
 > [!CAUTION]

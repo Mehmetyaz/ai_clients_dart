@@ -6,6 +6,42 @@ For the complete list of changes, see [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
+## Migrating from v4.x to v5.0.0
+
+v5.0.0 enforces required fields across 15 interaction content types and replaces `String?` resolution fields with a type-safe enum.
+
+### 1) Non-Nullable Required Fields in Content Types
+
+21 fields across 15 content types that were previously nullable are now non-nullable with required constructor parameters. Code constructing these types must provide the required fields.
+
+```dart
+// Before (v4.x)
+final content = TextContent(); // text was optional
+
+// After (v5.0.0)
+final content = TextContent(text: 'Hello'); // text is required
+```
+
+Affected types include `TextContent`, `FunctionCallContent`, `FunctionResultContent`, `ImageContent`, `VideoContent`, `GoogleSearchCallContent`, `GoogleSearchResultContent`, `GoogleMapsCallContent`, `GoogleMapsResultContent`, `FileSearchCallContent`, `FileSearchResultContent`, `CodeExecutionCallContent`, `CodeExecutionResultContent`, `McpServerToolCallContent`, `McpServerToolResultContent`, `UrlContextCallContent`, and `UrlContextResultContent`.
+
+Note: `fromJson` factories default to empty values for streaming `content.start` events where the server sends incomplete payloads.
+
+### 2) `resolution` Field Type Changed
+
+The `resolution` field on `ImageContent`, `VideoContent`, `ImageDelta`, and `VideoDelta` changed from `String?` to `InteractionMediaResolution?`.
+
+```dart
+// Before (v4.x)
+final image = ImageContent(image: data, resolution: 'high');
+
+// After (v5.0.0)
+final image = ImageContent(image: data, resolution: InteractionMediaResolution.high);
+```
+
+Available values: `InteractionMediaResolution.low`, `.medium`, `.high`, `.ultraHigh`.
+
+---
+
 ## Migrating from v3.x to v4.0.0
 
 v4.0.0 aligns with the latest Google AI spec, restructuring `Annotation` into a sealed class, strengthening weak types with proper Dart enums, and adding Google Maps support.

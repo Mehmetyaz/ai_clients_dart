@@ -1,3 +1,9 @@
+## 2.0.1
+
+Adds a strict semver bullet to the package README.
+
+- **DOCS**: Overhaul root README and add semver bullet to all packages ([#151](https://github.com/davidmigloz/ai_clients_dart/issues/151)). ([e6af33dd](https://github.com/davidmigloz/ai_clients_dart/commit/e6af33dd9eee225777f9007b2da571da075c19d3))
+
 ## 2.0.0
 
 > [!CAUTION]

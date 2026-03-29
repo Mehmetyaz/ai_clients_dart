@@ -1,3 +1,10 @@
+## 1.4.1
+
+Adds README Usage sections for models, files, and skills resources, and adds a strict semver bullet to the package README.
+
+- **DOCS**: Add models, files, and skills Usage sections ([#156](https://github.com/davidmigloz/ai_clients_dart/issues/156)). ([d9b683cc](https://github.com/davidmigloz/ai_clients_dart/commit/d9b683cc7b8f90ef5ec17e9bbcc9d737637ebe3e))
+- **DOCS**: Overhaul root README and add semver bullet to all packages ([#151](https://github.com/davidmigloz/ai_clients_dart/issues/151)). ([e6af33dd](https://github.com/davidmigloz/ai_clients_dart/commit/e6af33dd9eee225777f9007b2da571da075c19d3))
+
 ## 1.4.0
 
 Aligns with the latest Anthropic OpenAPI spec, adding model capabilities (`ModelCapabilities`, `CapabilitySupport`), thinking display modes (`ThinkingDisplayMode`), and `WebFetchTool` v20260309 with cache bypass control. Also standardizes equality helper locations and overhauls documentation with [llms.txt](llms.txt) ecosystem files.

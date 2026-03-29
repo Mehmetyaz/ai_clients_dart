@@ -68,7 +68,7 @@ Dart client for the **[OpenResponses specification](https://www.openresponses.or
 
 ```yaml
 dependencies:
-  open_responses: ^0.2.0
+  open_responses: ^0.3.0
 ```
 
 ```dart

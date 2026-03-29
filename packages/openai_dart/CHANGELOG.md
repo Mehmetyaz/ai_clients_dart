@@ -1,3 +1,15 @@
+## 4.0.0
+
+> [!CAUTION]
+> This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.
+
+Adds `FileContentPart` and `RefusalContentPart` to the Chat Completions API — completing the content part union with support for sending PDFs/documents and representing model refusals. The `InputFileContent.data()` and `InputContent.fileData()` factories now require a `mediaType` parameter and construct proper data URL format (raw base64 was rejected by the API). Also adds `ToolChoiceAllowedTools` and `ToolChoiceCustom` variants for constraining tool selection, and narrows `InputTokensResource.count` `toolChoice` from `Object?` to `ResponseToolChoice?`.
+
+- **BREAKING** **FEAT**: Add FileContentPart and RefusalContentPart ([#152](https://github.com/davidmigloz/ai_clients_dart/issues/152)). ([821eea60](https://github.com/davidmigloz/ai_clients_dart/commit/821eea60a630daf17c14df3cf4c04ade8fe296b9))
+- **FEAT**: Add ToolChoiceAllowedTools and ToolChoiceCustom variants ([#161](https://github.com/davidmigloz/ai_clients_dart/issues/161)). ([f0940801](https://github.com/davidmigloz/ai_clients_dart/commit/f0940801ef0964ad0bbb3b0c1e06e2bfdf6dbd1a))
+- **DOCS**: Improve toolkit and skills from PR #152 lessons ([#153](https://github.com/davidmigloz/ai_clients_dart/issues/153)). ([f55de1ec](https://github.com/davidmigloz/ai_clients_dart/commit/f55de1ec14a1c4ecd4cf885fa7d0237ab996fa1a))
+- **DOCS**: Overhaul root README and add semver bullet to all packages ([#151](https://github.com/davidmigloz/ai_clients_dart/issues/151)). ([e6af33dd](https://github.com/davidmigloz/ai_clients_dart/commit/e6af33dd9eee225777f9007b2da571da075c19d3))
+
 ## 3.0.0
 
 > [!CAUTION]

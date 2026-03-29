@@ -6,6 +6,58 @@ For the complete list of changes, see [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
+## Migrating from v3.x to v4.0.0
+
+v4.0.0 adds new `ContentPart` sealed variants and changes `InputFileContent.data()` to require a `mediaType` parameter for proper data URL construction.
+
+### 1) New `ContentPart` Sealed Variants
+
+`FileContentPart` and `RefusalContentPart` have been added to the `ContentPart` sealed class. Exhaustive switch expressions on `ContentPart` will fail to compile until the new cases are handled.
+
+```dart
+// Before (v3.x)
+switch (part) {
+  case TextContentPart(): ...
+  case ImageContentPart(): ...
+  case AudioContentPart(): ...
+}
+
+// After (v4.0.0)
+switch (part) {
+  case TextContentPart(): ...
+  case ImageContentPart(): ...
+  case AudioContentPart(): ...
+  case FileContentPart(): ...      // new — PDF/document content
+  case RefusalContentPart(): ...   // new — model refusal
+}
+```
+
+### 2) `InputFileContent.data()` / `InputContent.fileData()` Signature Change
+
+These factories now require a `mediaType` parameter and automatically construct the data URL format expected by the API. Previously, raw base64 was passed directly but was rejected by the API.
+
+```dart
+// Before (v3.x)
+InputFileContent.data(data: base64String)
+
+// After (v4.0.0)
+InputFileContent.data(data: base64String, mediaType: 'application/pdf')
+```
+
+### 3) `InputTokensResource.count` `toolChoice` Type Narrowed
+
+The `toolChoice` parameter on `InputTokensResource.count` changed from `Object?` to `ResponseToolChoice?`.
+
+```dart
+// Before (v3.x)
+client.responses.inputTokens.count(toolChoice: 'auto')
+
+// After (v4.0.0)
+client.responses.inputTokens.count(toolChoice: ResponseToolChoice.auto())
+```
+
+---
+
 ## Migrating from v2.x to v3.0.0
 
 v3.0.0 replaces the `ServiceTier` enum with an extensible class, completes `ResponseError` fields, and removes `FileInputDetail`.

@@ -1,3 +1,9 @@
+## 0.1.4
+
+Removes unnecessary lint ignore comments with proper fixes — replaces `async` closures without `await` with `FutureOr<EventHandlerResult>` return types and switches `print()` calls to structured `developer.log()`.
+
+- **REFACTOR**: Remove unnecessary lint ignores ([#154](https://github.com/davidmigloz/ai_clients_dart/issues/154)). ([230f4929](https://github.com/davidmigloz/ai_clients_dart/commit/230f492914029a1754a1f00d3fcbd93cb46c8fb0))
+
 ## 0.1.3
 
 Overhauls README documentation with standardized structure and adds [llms.txt](llms.txt) ecosystem files for improved LLM discoverability.

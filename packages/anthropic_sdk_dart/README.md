@@ -58,7 +58,7 @@ Dart client for the **[Anthropic API](https://docs.anthropic.com/en/api)** to bu
 
 ```yaml
 dependencies:
-  anthropic_sdk_dart: ^1.4.0
+  anthropic_sdk_dart: ^1.4.1
 ```
 
 ```dart

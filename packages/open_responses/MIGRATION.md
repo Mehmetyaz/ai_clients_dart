@@ -6,6 +6,24 @@ For the complete list of changes, see [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
+## Migrating from v0.2.x to v0.3.0
+
+v0.3.0 changes `InputFileContent.data()` to require a `mediaType` parameter for proper data URL construction.
+
+### 1) `InputFileContent.data()` / `InputContent.fileData()` Signature Change
+
+These factories now require a `mediaType` parameter and automatically construct the data URL format expected by the API.
+
+```dart
+// Before (v0.2.x)
+InputFileContent.data(data: base64String)
+
+// After (v0.3.0)
+InputFileContent.data(data: base64String, mediaType: 'application/pdf')
+```
+
+---
+
 ## Migrating from v0.1.x to v0.2.0
 
 v0.2.0 replaces the `ServiceTier` enum with an extensible class to align with the provider-agnostic OpenResponses specification.
