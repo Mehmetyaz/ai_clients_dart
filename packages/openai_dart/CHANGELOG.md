@@ -1,3 +1,9 @@
+## 4.0.1
+
+Aligns the README layout by moving the coding-agents TIP callout to the standard position after badges and description.
+
+- **DOCS**: Align README TIP position with other packages ([#172](https://github.com/davidmigloz/ai_clients_dart/issues/172)). ([a6562b99](https://github.com/davidmigloz/ai_clients_dart/commit/a6562b994889d1b4f310a78a09d1d3a99955873e))
+
 ## 4.0.0
 
 > [!CAUTION]

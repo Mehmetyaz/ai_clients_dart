@@ -1,3 +1,9 @@
+## 1.4.2
+
+Adds an `extra` overflow field to `InputSchema` for passing additional JSON Schema keywords (like `additionalProperties: false`) that the Anthropic API now requires on object-type tool input schemas. All examples and integration tests have been updated accordingly.
+
+- **FIX**: Add extra field to InputSchema for additionalProperties ([#168](https://github.com/davidmigloz/ai_clients_dart/issues/168)). ([164cad60](https://github.com/davidmigloz/ai_clients_dart/commit/164cad604dc848435b5ca3e2bf9e98a556d03aea))
+
 ## 1.4.1
 
 Adds README Usage sections for models, files, and skills resources, and adds a strict semver bullet to the package README.

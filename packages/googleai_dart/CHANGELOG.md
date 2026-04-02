@@ -1,3 +1,11 @@
+## 5.0.1
+
+Fixes the file search store upload URL (`:upload` → `:uploadToFileSearchStore`) which caused a 404 on every call, and adds an optional `force` parameter to `delete()` and `deleteDocument()` for cascading deletes of documents and chunks.
+
+- **FIX**: Correct upload URL and add force param to file search stores ([#169](https://github.com/davidmigloz/ai_clients_dart/issues/169)). ([236a4ae8](https://github.com/davidmigloz/ai_clients_dart/commit/236a4ae8238a2d234ed7cf0e58422d19ef1ab0d7))
+- **TEST**: Add Gemma 4 integration test ([#166](https://github.com/davidmigloz/ai_clients_dart/issues/166)). ([ebf1904f](https://github.com/davidmigloz/ai_clients_dart/commit/ebf1904f35e3b518c820383783c3c30dfdc5e656))
+- **CHORE**: Update Veo model to veo-3.1-lite-generate-preview ([#163](https://github.com/davidmigloz/ai_clients_dart/issues/163)). ([f89bb3ae](https://github.com/davidmigloz/ai_clients_dart/commit/f89bb3ae0fc0f92d55995e0aa2a77bdc0e74e2aa))
+
 ## 5.0.0
 
 > [!CAUTION]

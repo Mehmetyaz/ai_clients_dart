@@ -1,3 +1,10 @@
+## 2.1.1
+
+Adds an `extra` overflow field to `SpeechRequest` for passing additional properties to the Mistral speech API, and aligns the README layout with other packages.
+
+- **FIX**: Add extra field to SpeechRequest for additionalProperties ([#170](https://github.com/davidmigloz/ai_clients_dart/issues/170)). ([6f2c4d4c](https://github.com/davidmigloz/ai_clients_dart/commit/6f2c4d4c7216430799ea4ac9da294112dcb967d5))
+- **DOCS**: Align README TIP position with other packages ([#172](https://github.com/davidmigloz/ai_clients_dart/issues/172)). ([a6562b99](https://github.com/davidmigloz/ai_clients_dart/commit/a6562b994889d1b4f310a78a09d1d3a99955873e))
+
 ## 2.1.0
 
 Adds `ToolFileContentPart` and `ToolReferenceContentPart` sealed variants to `ContentPart` for built-in tool output content (code interpreter files, web search references). Also adds `unknown` fallback values to `ReasoningEffort` and `SpeechOutputFormat` enums for forward compatibility.
