@@ -1,3 +1,9 @@
+## 2.2.0
+
+Adds two new beta API domains — Observability (41 endpoints for campaigns, datasets, judges, and chat completion monitoring) and Workflows (34 endpoints for workflow execution, scheduling, deployments, and tracing). Refreshes the OpenAPI spec with 75 new endpoints and 126 new schemas.
+
+- **FEAT**: Add Observability and Workflows beta APIs ([#179](https://github.com/davidmigloz/ai_clients_dart/issues/179)). ([1895a02b](https://github.com/davidmigloz/ai_clients_dart/commit/1895a02ba756e38d849f6e0e12a2b4aa9d0dd812))
+
 ## 2.1.1
 
 Adds an `extra` overflow field to `SpeechRequest` for passing additional properties to the Mistral speech API, and aligns the README layout with other packages.

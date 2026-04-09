@@ -1,3 +1,9 @@
+## 5.1.0
+
+Adds `EmbeddingUsageMetadata` with `promptTokenCount` and `promptTokenDetails` fields to `EmbedContentResponse` and `BatchEmbedContentsResponse`, enabling token usage tracking for embedding requests.
+
+- **FEAT**: Add EmbeddingUsageMetadata to embedding responses ([#175](https://github.com/davidmigloz/ai_clients_dart/issues/175)). ([f558312d](https://github.com/davidmigloz/ai_clients_dart/commit/f558312d43116de817874f27bd130ea1e26b1582))
+
 ## 5.0.1
 
 Fixes the file search store upload URL (`:upload` → `:uploadToFileSearchStore`) which caused a 404 on every call, and adds an optional `force` parameter to `delete()` and `deleteDocument()` for cascading deletes of documents and chunks.

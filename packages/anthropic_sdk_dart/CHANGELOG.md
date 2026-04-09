@@ -1,3 +1,10 @@
+## 1.5.0
+
+Adds full support for the [Managed Agents API](https://claude.com/blog/claude-managed-agents) (beta) with 33 endpoints across agents, sessions, vaults, and credentials — including SSE streaming for session events. Also adds structured refusal details (`RefusalStopDetails`, `RefusalCategory`) to messages and deltas when `stopReason` is `refusal`, and session-scoped file filtering via `FileScope` and `scopeId`.
+
+- **FEAT**: Add managed agents API support ([#180](https://github.com/davidmigloz/ai_clients_dart/issues/180)). ([edb3d6df](https://github.com/davidmigloz/ai_clients_dart/commit/edb3d6df64b1f9444e3b9fe485426f7a8176163a))
+- **FEAT**: Add stop_details, file scope, and refresh spec ([#177](https://github.com/davidmigloz/ai_clients_dart/issues/177)). ([e03084c5](https://github.com/davidmigloz/ai_clients_dart/commit/e03084c5a835897e4b331d2cedf4da4ec3b69062))
+
 ## 1.4.2
 
 Adds an `extra` overflow field to `InputSchema` for passing additional JSON Schema keywords (like `additionalProperties: false`) that the Anthropic API now requires on object-type tool input schemas. All examples and integration tests have been updated accordingly.

@@ -1,3 +1,9 @@
+## 4.1.0
+
+Adds a `phase` property to `ConversationMessageItem` to match the latest OpenAI spec. The field labels assistant messages as either `commentary` (intermediate thinking) or `final_answer`, which prevents performance degradation when resending conversation history to models like `gpt-5.3-codex`.
+
+- **FEAT**: Add phase field to conversation messages ([#174](https://github.com/davidmigloz/ai_clients_dart/issues/174)). ([2814aa89](https://github.com/davidmigloz/ai_clients_dart/commit/2814aa896ce97d32f5aa46f0e9f10a5b610665e5))
+
 ## 4.0.1
 
 Aligns the README layout by moving the coding-agents TIP callout to the standard position after badges and description.

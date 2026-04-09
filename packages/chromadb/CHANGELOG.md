@@ -1,3 +1,9 @@
+## 1.2.0
+
+Adds a `forkCount()` method to `CollectionsResource` for the new fork count endpoint, with a `ForkCountResponse` model. Also updates the OpenAPI spec to the latest upstream version with new `DeleteCollectionResponse` schema.
+
+- **FEAT**: Add fork count endpoint and update spec ([#176](https://github.com/davidmigloz/ai_clients_dart/issues/176)). ([47efa28f](https://github.com/davidmigloz/ai_clients_dart/commit/47efa28f52e35e5d166627aede08bdcb3436e44f))
+
 ## 1.1.2
 
 Adds a strict semver bullet to the package README.
