@@ -94,6 +94,13 @@ sealed class InputContentBlock {
     CacheControlEphemeral? cacheControl,
   }) = CompactionInputBlock;
 
+  /// Creates an advisor tool result block (for multi-turn conversations).
+  factory InputContentBlock.advisorToolResult({
+    required String toolUseId,
+    required AdvisorToolResultContent content,
+    CacheControlEphemeral? cacheControl,
+  }) = AdvisorToolResultInputBlock;
+
   /// Creates a tool reference block.
   factory InputContentBlock.toolReference({
     required String toolName,
@@ -124,7 +131,8 @@ sealed class InputContentBlock {
       'container_upload' => ContainerUploadInputBlock.fromJson(json),
       'compaction' => CompactionInputBlock.fromJson(json),
       'tool_reference' => ToolReferenceInputBlock.fromJson(json),
-      _ => throw FormatException('Unknown InputContentBlock type: $type'),
+      'advisor_tool_result' => AdvisorToolResultInputBlock.fromJson(json),
+      _ => UnknownInputContentBlock.fromJson(json),
     };
   }
 
@@ -1361,4 +1369,117 @@ class ToolReferenceInputBlock extends InputContentBlock {
   String toString() =>
       'ToolReferenceInputBlock(toolName: $toolName, '
       'cacheControl: $cacheControl)';
+}
+
+/// Advisor tool result block in input (for multi-turn conversations).
+///
+/// Pass advisor tool result blocks verbatim from the assistant's response
+/// back to the API on subsequent turns.
+@immutable
+class AdvisorToolResultInputBlock extends InputContentBlock {
+  /// The ID of the related tool use.
+  final String toolUseId;
+
+  /// The advisor's response content.
+  final AdvisorToolResultContent content;
+
+  /// Cache control for this block.
+  final CacheControlEphemeral? cacheControl;
+
+  /// Creates an [AdvisorToolResultInputBlock].
+  const AdvisorToolResultInputBlock({
+    required this.toolUseId,
+    required this.content,
+    this.cacheControl,
+  });
+
+  /// Creates an [AdvisorToolResultInputBlock] from JSON.
+  factory AdvisorToolResultInputBlock.fromJson(Map<String, dynamic> json) {
+    return AdvisorToolResultInputBlock(
+      toolUseId: json['tool_use_id'] as String,
+      content: AdvisorToolResultContent.fromJson(
+        json['content'] as Map<String, dynamic>,
+      ),
+      cacheControl: json['cache_control'] != null
+          ? CacheControlEphemeral.fromJson(
+              json['cache_control'] as Map<String, dynamic>,
+            )
+          : null,
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'type': 'advisor_tool_result',
+    'tool_use_id': toolUseId,
+    'content': content.toJson(),
+    if (cacheControl != null) 'cache_control': cacheControl!.toJson(),
+  };
+
+  /// Creates a copy with replaced values.
+  AdvisorToolResultInputBlock copyWith({
+    String? toolUseId,
+    AdvisorToolResultContent? content,
+    Object? cacheControl = unsetCopyWithValue,
+  }) {
+    return AdvisorToolResultInputBlock(
+      toolUseId: toolUseId ?? this.toolUseId,
+      content: content ?? this.content,
+      cacheControl: cacheControl == unsetCopyWithValue
+          ? this.cacheControl
+          : cacheControl as CacheControlEphemeral?,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AdvisorToolResultInputBlock &&
+          runtimeType == other.runtimeType &&
+          toolUseId == other.toolUseId &&
+          content == other.content &&
+          cacheControl == other.cacheControl;
+
+  @override
+  int get hashCode => Object.hash(toolUseId, content, cacheControl);
+
+  @override
+  String toString() =>
+      'AdvisorToolResultInputBlock(toolUseId: $toolUseId, '
+      'content: $content, cacheControl: $cacheControl)';
+}
+
+/// Forward-compatible fallback for unknown input content block types.
+///
+/// Preserves the raw JSON so unrecognized blocks from assistant responses
+/// can be round-tripped back to the API without data loss.
+@immutable
+class UnknownInputContentBlock extends InputContentBlock {
+  /// The raw JSON for this unknown input content block.
+  final Map<String, dynamic> raw;
+
+  /// Creates an [UnknownInputContentBlock].
+  UnknownInputContentBlock({required Map<String, dynamic> raw})
+    : raw = Map.unmodifiable(raw);
+
+  /// Creates an [UnknownInputContentBlock] from JSON.
+  factory UnknownInputContentBlock.fromJson(Map<String, dynamic> json) {
+    return UnknownInputContentBlock(raw: json);
+  }
+
+  @override
+  Map<String, dynamic> toJson() => Map<String, dynamic>.from(raw);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is UnknownInputContentBlock &&
+          runtimeType == other.runtimeType &&
+          mapsDeepEqual(raw, other.raw);
+
+  @override
+  int get hashCode => mapDeepHashCode(raw);
+
+  @override
+  String toString() => 'UnknownInputContentBlock(raw: ${raw.length} entries)';
 }
