@@ -445,36 +445,76 @@ class ModelRequestFailedError {
       'retryStatus: $retryStatus)';
 }
 
-/// An unknown managed agent error (preserves raw JSON).
+/// An unknown managed agent error (preserves raw JSON for forward compatibility).
 @immutable
 class UnknownManagedAgentError {
+  /// The type discriminator. Always `unknown_error`.
+  final String type;
+
   /// Human-readable error description.
   final String message;
 
-  /// The raw JSON data.
+  /// What the client should do next.
+  final RetryStatus retryStatus;
+
+  /// The raw JSON data (preserves unknown future fields).
   final Map<String, dynamic>? rawJson;
 
   /// Creates an [UnknownManagedAgentError].
-  const UnknownManagedAgentError({required this.message, this.rawJson});
+  UnknownManagedAgentError({
+    this.type = 'unknown_error',
+    required this.message,
+    required this.retryStatus,
+    Map<String, dynamic>? rawJson,
+  }) : rawJson = rawJson != null ? Map.unmodifiable(rawJson) : null;
 
   /// Creates an [UnknownManagedAgentError] from JSON.
   factory UnknownManagedAgentError.fromJson(Map<String, dynamic> json) {
     return UnknownManagedAgentError(
+      type: json['type'] as String? ?? 'unknown_error',
       message: json['message'] as String,
+      retryStatus: RetryStatus.fromJson(
+        json['retry_status'] as Map<String, dynamic>,
+      ),
       rawJson: json,
     );
   }
 
   /// Converts to JSON.
-  Map<String, dynamic> toJson() => rawJson ?? {'message': message};
+  ///
+  /// When [rawJson] is present, it is used as the base to preserve unknown
+  /// fields. Lossless scalar fields (`type`, `message`) are overwritten, and
+  /// `retry_status` is merged so the current [retryStatus] state is reflected
+  /// while preserving any extra unknown fields from the original payload
+  /// (e.g. `retry_at`).
+  Map<String, dynamic> toJson() {
+    final retryStatusJson = retryStatus.toJson();
+    if (rawJson != null) {
+      final rawRetryStatus = rawJson!['retry_status'];
+      final mergedRetryStatus = rawRetryStatus is Map<String, dynamic>
+          ? {...rawRetryStatus, ...retryStatusJson}
+          : retryStatusJson;
+      return {
+        ...rawJson!,
+        'type': type,
+        'message': message,
+        'retry_status': mergedRetryStatus,
+      };
+    }
+    return {'type': type, 'message': message, 'retry_status': retryStatusJson};
+  }
 
   /// Creates a copy with replaced values.
   UnknownManagedAgentError copyWith({
+    String? type,
     String? message,
+    RetryStatus? retryStatus,
     Object? rawJson = unsetCopyWithValue,
   }) {
     return UnknownManagedAgentError(
+      type: type ?? this.type,
       message: message ?? this.message,
+      retryStatus: retryStatus ?? this.retryStatus,
       rawJson: rawJson == unsetCopyWithValue
           ? this.rawJson
           : rawJson as Map<String, dynamic>?,
@@ -486,13 +526,20 @@ class UnknownManagedAgentError {
       identical(this, other) ||
       other is UnknownManagedAgentError &&
           runtimeType == other.runtimeType &&
+          type == other.type &&
           message == other.message &&
+          retryStatus == other.retryStatus &&
           mapsDeepEqual(rawJson, other.rawJson);
 
   @override
-  int get hashCode => Object.hash(message, mapDeepHashCode(rawJson));
+  int get hashCode =>
+      Object.hash(type, message, retryStatus, mapDeepHashCode(rawJson));
 
   @override
   String toString() =>
-      'UnknownManagedAgentError(message: $message, rawJson: $rawJson)';
+      'UnknownManagedAgentError('
+      'type: $type, '
+      'message: $message, '
+      'retryStatus: $retryStatus, '
+      'rawJson: $rawJson)';
 }

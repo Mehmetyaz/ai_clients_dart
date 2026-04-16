@@ -51,8 +51,21 @@ class ManagedAgentsFixtures {
         'skills': <Map<String, dynamic>>[],
         'tools': <Map<String, dynamic>>[],
       },
+      'environment_id': 'env_test123',
+      'title': null,
+      'metadata': <String, String>{},
+      'resources': <Map<String, dynamic>>[],
+      'vault_ids': <String>[],
+      'stats': {'active_seconds': 0, 'duration_seconds': 0},
+      'usage': {
+        'input_tokens': 0,
+        'output_tokens': 0,
+        'cache_read_input_tokens': 0,
+        'cache_creation_input_tokens': 0,
+      },
       'created_at': '2026-04-01T00:00:00Z',
       'updated_at': '2026-04-01T00:00:00Z',
+      'archived_at': null,
     };
   }
 
@@ -773,6 +786,130 @@ void main() {
         '/v1/vaults/vault_test123/credentials/cred_test123/archive',
       );
       expect(request.method, 'POST');
+    });
+  });
+
+  group('UnknownManagedAgentError', () {
+    test('fromJson parses type, message, and retryStatus', () {
+      final json = {
+        'type': 'unknown_error',
+        'message': 'Something went wrong',
+        'retry_status': {
+          'type': 'retrying',
+          'retry_at': '2026-04-01T00:01:00Z',
+        },
+      };
+
+      final error = UnknownManagedAgentError.fromJson(json);
+
+      expect(error.type, 'unknown_error');
+      expect(error.message, 'Something went wrong');
+      expect(error.retryStatus, isA<RetryStatusRetrying>());
+      expect(error.rawJson, json);
+    });
+
+    test('toJson round-trips correctly', () {
+      final json = {
+        'type': 'unknown_error',
+        'message': 'Something went wrong',
+        'retry_status': {
+          'type': 'retrying',
+          'retry_at': '2026-04-01T00:01:00Z',
+        },
+      };
+
+      final error = UnknownManagedAgentError.fromJson(json);
+      final output = error.toJson();
+
+      expect(output['type'], 'unknown_error');
+      expect(output['message'], 'Something went wrong');
+      expect(output['retry_status'], isA<Map<String, dynamic>>());
+    });
+
+    test('toJson preserves retry_status fields like retry_at', () {
+      final json = {
+        'type': 'unknown_error',
+        'message': 'Retrying',
+        'retry_status': {
+          'type': 'retrying',
+          'retry_at': '2026-04-01T00:01:00Z',
+        },
+      };
+
+      final error = UnknownManagedAgentError.fromJson(json);
+      final output = error.toJson();
+
+      // retry_status must preserve retry_at — the parsed RetryStatusRetrying
+      // only stores 'type', so rawJson is used verbatim.
+      final retryStatus = output['retry_status'] as Map<String, dynamic>;
+      expect(retryStatus['type'], 'retrying');
+      expect(retryStatus['retry_at'], '2026-04-01T00:01:00Z');
+    });
+
+    test('toJson reflects copyWith retryStatus while preserving retry_at', () {
+      final json = {
+        'type': 'unknown_error',
+        'message': 'Retrying',
+        'retry_status': {
+          'type': 'retrying',
+          'retry_at': '2026-04-01T00:01:00Z',
+        },
+      };
+
+      final error = UnknownManagedAgentError.fromJson(json);
+      final modified = error.copyWith(retryStatus: const RetryStatusTerminal());
+      final output = modified.toJson();
+
+      // The merged retry_status should reflect the new type from copyWith
+      // while preserving retry_at from the original rawJson.
+      final retryStatus = output['retry_status'] as Map<String, dynamic>;
+      expect(retryStatus['type'], 'terminal');
+      expect(retryStatus['retry_at'], '2026-04-01T00:01:00Z');
+    });
+
+    test('toJson preserves unknown fields from rawJson', () {
+      final json = {
+        'type': 'unknown_error',
+        'message': 'Error',
+        'retry_status': {'type': 'terminal'},
+        'extra_field': 'preserved',
+      };
+
+      final error = UnknownManagedAgentError.fromJson(json);
+      final output = error.toJson();
+
+      expect(output['extra_field'], 'preserved');
+    });
+
+    test('copyWith creates modified copy', () {
+      final error = UnknownManagedAgentError(
+        message: 'original',
+        retryStatus: const RetryStatusTerminal(),
+      );
+      final modified = error.copyWith(message: 'updated');
+
+      expect(modified.message, 'updated');
+      expect(modified.retryStatus, isA<RetryStatusTerminal>());
+      expect(error.message, 'original');
+    });
+
+    test('equality includes type and retryStatus', () {
+      final a = UnknownManagedAgentError(
+        message: 'error',
+        retryStatus: const RetryStatusTerminal(),
+      );
+      final b = UnknownManagedAgentError(
+        message: 'error',
+        retryStatus: const RetryStatusTerminal(),
+      );
+      final c = UnknownManagedAgentError(
+        message: 'different',
+        retryStatus: const RetryStatusTerminal(),
+      );
+
+      expect(a, equals(b));
+      expect(a.hashCode, equals(b.hashCode));
+      expect(a, isNot(equals(c)));
     });
   });
 }
