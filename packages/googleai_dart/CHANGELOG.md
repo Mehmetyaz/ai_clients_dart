@@ -1,3 +1,13 @@
+## 6.0.0
+
+> [!CAUTION]
+> This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.
+
+Aligns with the latest upstream OpenAPI specs, adding `document` and `video` response modalities, a new `RetrievalTool` variant (with `VertexAISearchConfig`) for Vertex AI Search, `serviceTier` support for flex/standard/priority tier selection, `pageNumber` on `RetrievedContext`, and `channels`/`rate` on audio content and delta types. **Breaking:** `TextDelta.annotations` has been removed and moved to a dedicated `TextAnnotationDelta` variant of `InteractionDelta` — streaming callers that handle annotation deltas must update their sealed-class pattern matching.
+
+- **BREAKING** **FEAT**: Update OpenAPI spec with new types and fields ([#185](https://github.com/davidmigloz/ai_clients_dart/issues/185)). ([ccc77d47](https://github.com/davidmigloz/ai_clients_dart/commit/ccc77d47204e3839121f6f616e7805da1d21274a))
+- **FEAT**: Annotate llms.txt with token counts and tighten agent-facing docs ([#181](https://github.com/davidmigloz/ai_clients_dart/issues/181)). ([a1e82aca](https://github.com/davidmigloz/ai_clients_dart/commit/a1e82acad8b713afc5d6d67d6e8d34937ac3f6a8))
+
 ## 5.1.0
 
 Adds `EmbeddingUsageMetadata` with `promptTokenCount` and `promptTokenDetails` fields to `EmbedContentResponse` and `BatchEmbedContentsResponse`, enabling token usage tracking for embedding requests.

@@ -6,6 +6,46 @@ For the complete list of changes, see [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
+## Migrating from v1.x to v2.0.0
+
+v2.0.0 tightens `Session` field nullability to match the `BetaManagedAgentsSession` spec. Six fields that were previously nullable are now required non-nullable, so code constructing `Session` instances directly (for tests, mocks, or fixtures) must provide them.
+
+### 1) Non-Nullable Required Fields on `Session`
+
+Six fields on `Session` are no longer nullable and are required constructor parameters: `environmentId`, `metadata`, `resources`, `vaultIds`, `stats`, and `usage`. The `title` and `archivedAt` fields stay nullable (spec `nullable: true`) but are now `required` parameters in the constructor.
+
+```dart
+// Before (v1.x) — fields were optional and nullable
+final session = Session(
+  id: 'sess_1',
+  type: 'session',
+  agentId: 'agent_1',
+  createdAt: DateTime.now(),
+  updatedAt: DateTime.now(),
+);
+
+// After (v2.0.0) — all required fields must be provided
+final session = Session(
+  id: 'sess_1',
+  type: 'session',
+  agentId: 'agent_1',
+  createdAt: DateTime.now(),
+  updatedAt: DateTime.now(),
+  title: null,
+  archivedAt: null,
+  environmentId: 'env_1',
+  metadata: const {},
+  resources: const [],
+  vaultIds: const [],
+  stats: SessionStats(...),
+  usage: SessionUsage(...),
+);
+```
+
+Deserialization from JSON (`Session.fromJson`) is unchanged — the API always returns these fields, so only direct construction is affected.
+
+---
+
 ## Migrating from v0.1.x to v1.0.0
 
 This guide helps you migrate from the old `anthropic_sdk_dart` client (v0.1.x) to the new **v1.0.0** (complete rewrite with resource-based organization and comprehensive API coverage).

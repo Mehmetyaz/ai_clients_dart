@@ -6,6 +6,40 @@ For the complete list of changes, see [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
+## Migrating from v5.x to v6.0.0
+
+v6.0.0 aligns with the latest interactions OpenAPI spec, which splits annotation events out of `TextDelta` into a dedicated delta variant. Callers that pattern-match on streaming interaction deltas must handle the new `TextAnnotationDelta` variant.
+
+### 1) `TextDelta.annotations` Removed — New `TextAnnotationDelta` Variant
+
+The `annotations` field on `TextDelta` has been removed. Annotation events now arrive as a separate `TextAnnotationDelta` variant of `InteractionDelta` (`type: "text_annotation"`), so text and citation updates can be streamed independently.
+
+```dart
+// Before (v5.x)
+stream.listen((event) {
+  if (event.delta is TextDelta) {
+    final delta = event.delta as TextDelta;
+    print('text: ${delta.text}');
+    for (final ann in delta.annotations ?? []) {
+      print('annotation: $ann');
+    }
+  }
+});
+
+// After (v6.0.0) — annotations arrive as their own delta events
+stream.listen((event) {
+  switch (event.delta) {
+    case TextDelta(:final text):
+      print('text: $text');
+    case TextAnnotationDelta(:final annotation):
+      print('annotation: $annotation');
+    // ...other delta variants
+  }
+});
+```
+
+---
+
 ## Migrating from v4.x to v5.0.0
 
 v5.0.0 enforces required fields across 15 interaction content types and replaces `String?` resolution fields with a type-safe enum.

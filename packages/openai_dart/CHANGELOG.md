@@ -1,3 +1,10 @@
+## 4.2.0
+
+Re-introduces the `detail` field on `InputFileContent` via a new `FileInputDetail` enum (`high`/`low`) for controlling how thoroughly the model processes file inputs, following the same pattern as the existing `ImageDetail` enum. Also refreshes the OpenAPI spec to the latest upstream version.
+
+- **FEAT**: Update OpenAPI spec and add file input detail ([#186](https://github.com/davidmigloz/ai_clients_dart/issues/186)). ([65aa7167](https://github.com/davidmigloz/ai_clients_dart/commit/65aa7167fe9248e1a0f9de0a5e643ce7bc44973b))
+- **FEAT**: Annotate llms.txt with token counts and tighten agent-facing docs ([#181](https://github.com/davidmigloz/ai_clients_dart/issues/181)). ([a1e82aca](https://github.com/davidmigloz/ai_clients_dart/commit/a1e82acad8b713afc5d6d67d6e8d34937ac3f6a8))
+
 ## 4.1.0
 
 Adds a `phase` property to `ConversationMessageItem` to match the latest OpenAI spec. The field labels assistant messages as either `commentary` (intermediate thinking) or `final_answer`, which prevents performance degradation when resending conversation history to models like `gpt-5.3-codex`.

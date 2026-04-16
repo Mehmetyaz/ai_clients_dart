@@ -1,3 +1,10 @@
+## 2.3.0
+
+Adds support for OCR confidence scores with a new `confidenceScoresGranularity` request parameter (`page` or `word`) and per-page/per-word score response types. Also fills pre-existing spec gaps on `OcrPage` (tables, header, footer, hyperlinks) and `OcrRequest` (tableFormat, extractHeader, extractFooter, annotation formats).
+
+- **FEAT**: Update OpenAPI spec with OCR confidence scores ([#188](https://github.com/davidmigloz/ai_clients_dart/issues/188)). ([443d3318](https://github.com/davidmigloz/ai_clients_dart/commit/443d3318f758a9a583f8470e3548ff6f24f94473))
+- **FEAT**: Annotate llms.txt with token counts and tighten agent-facing docs ([#181](https://github.com/davidmigloz/ai_clients_dart/issues/181)). ([a1e82aca](https://github.com/davidmigloz/ai_clients_dart/commit/a1e82acad8b713afc5d6d67d6e8d34937ac3f6a8))
+
 ## 2.2.0
 
 Adds two new beta API domains — Observability (41 endpoints for campaigns, datasets, judges, and chat completion monitoring) and Workflows (34 endpoints for workflow execution, scheduling, deployments, and tracing). Refreshes the OpenAPI spec with 75 new endpoints and 126 new schemas.

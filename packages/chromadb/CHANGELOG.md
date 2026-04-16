@@ -1,3 +1,10 @@
+## 1.3.0
+
+Adds a new `getCollectionById` API for retrieving collections by UUID (previously only name and CRN lookups were supported), bringing the client to 29 endpoints against the latest upstream OpenAPI spec.
+
+- **FEAT**: Add get collection by ID endpoint ([#187](https://github.com/davidmigloz/ai_clients_dart/issues/187)). ([ac0f4212](https://github.com/davidmigloz/ai_clients_dart/commit/ac0f4212696f102f122777c0ebe3c7471893f065))
+- **FEAT**: Annotate llms.txt with token counts and tighten agent-facing docs ([#181](https://github.com/davidmigloz/ai_clients_dart/issues/181)). ([a1e82aca](https://github.com/davidmigloz/ai_clients_dart/commit/a1e82acad8b713afc5d6d67d6e8d34937ac3f6a8))
+
 ## 1.2.0
 
 Adds a `forkCount()` method to `CollectionsResource` for the new fork count endpoint, with a `ForkCountResponse` model. Also updates the OpenAPI spec to the latest upstream version with new `DeleteCollectionResponse` schema.

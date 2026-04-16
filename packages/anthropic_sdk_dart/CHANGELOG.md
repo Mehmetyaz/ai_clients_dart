@@ -1,3 +1,15 @@
+## 2.0.0
+
+> [!CAUTION]
+> This release has breaking changes. See the [Migration Guide](MIGRATION.md) for upgrade instructions.
+
+Adds the beta [advisor tool](https://claude.com/blog/the-advisor-strategy) for pairing a faster executor model with a stronger advisor model in a single request, plus `MCPToolUseBlock`/`MCPToolResultBlock` content types for mid-generation MCP tool calls. All examples migrate from deprecated `claude-sonnet-4-20250514` to `claude-sonnet-4-6` ahead of the June 15, 2026 end-of-life. **Breaking:** six `Session` fields moved from nullable to required non-nullable in the constructor — direct instantiation requires updates.
+
+- **BREAKING** **FEAT**: Fix verify gaps and add MCP content blocks ([#184](https://github.com/davidmigloz/ai_clients_dart/issues/184)). ([85177cc3](https://github.com/davidmigloz/ai_clients_dart/commit/85177cc3e3296f201d7da6530e6c1a9d2024ab69))
+- **FEAT**: Add advisor tool support ([#182](https://github.com/davidmigloz/ai_clients_dart/issues/182)). ([f5268a38](https://github.com/davidmigloz/ai_clients_dart/commit/f5268a383794e520fadeda7f01b38767c5e08bf0))
+- **FEAT**: Annotate llms.txt with token counts and tighten agent-facing docs ([#181](https://github.com/davidmigloz/ai_clients_dart/issues/181)). ([a1e82aca](https://github.com/davidmigloz/ai_clients_dart/commit/a1e82acad8b713afc5d6d67d6e8d34937ac3f6a8))
+- **CHORE**: Update OpenAPI spec and migrate deprecated model IDs ([#183](https://github.com/davidmigloz/ai_clients_dart/issues/183)). ([e5876e22](https://github.com/davidmigloz/ai_clients_dart/commit/e5876e22e3f7d5cd887f0f7286f437217b2e44aa))
+
 ## 1.5.0
 
 Adds full support for the [Managed Agents API](https://claude.com/blog/claude-managed-agents) (beta) with 33 endpoints across agents, sessions, vaults, and credentials — including SSE streaming for session events. Also adds structured refusal details (`RefusalStopDetails`, `RefusalCategory`) to messages and deltas when `stopReason` is `refusal`, and session-scoped file filtering via `FileScope` and `scopeId`.
