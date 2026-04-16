@@ -1,3 +1,10 @@
+## 2.1.0
+
+Adds support for [Claude Opus 4.7](https://www.anthropic.com/news/claude-opus-4-7) and refreshes the package to the latest Anthropic OpenAPI spec. Introduces the User Profiles beta API — 5 endpoints exposed as `client.userProfiles` for registering end-user profiles with metadata, per-feature trust grants, and short-lived enrollment URLs. Also extends `EffortLevel` with `xhigh`, adds `TokenTaskBudget` and `OutputConfig.taskBudget` for client-side compaction budgets, wires optional `encrypted_content` through compaction blocks, and adds `MessageCreateRequest.userProfileId` for end-user profile routing.
+
+- **FEAT**: Add User Profiles beta API ([#193](https://github.com/davidmigloz/ai_clients_dart/issues/193)). ([c2d74a9f](https://github.com/davidmigloz/ai_clients_dart/commit/c2d74a9f438d878cad43ab0457ab3d6f651b563e))
+- **FEAT**: Add Claude Opus 4.7 and refresh OpenAPI spec ([#191](https://github.com/davidmigloz/ai_clients_dart/issues/191)). ([b291f445](https://github.com/davidmigloz/ai_clients_dart/commit/b291f445e1c3760dd0686b421e779fdc95aa6e34))
+
 ## 2.0.0
 
 > [!CAUTION]

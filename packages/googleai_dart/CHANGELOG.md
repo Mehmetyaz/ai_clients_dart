@@ -1,3 +1,9 @@
+## 6.1.0
+
+Adds a text-to-speech example for the new [Gemini 3.1 Flash TTS](https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-3-1-flash-tts/) preview model, demonstrating single-speaker synthesis, audio-tag control for inline pacing and tone, and multi-speaker dialogue. Also adds a README FAQ section for speech generation, fixes the image-generation snippet to use the `ResponseModality` enum, and refreshes the main OpenAPI spec metadata with no schema changes.
+
+- **FEAT**: Add Gemini 3.1 Flash TTS example ([#192](https://github.com/davidmigloz/ai_clients_dart/issues/192)). ([379e9cfe](https://github.com/davidmigloz/ai_clients_dart/commit/379e9cfecc878405542d47d9e625bfadf55bca90))
+
 ## 6.0.0
 
 > [!CAUTION]
