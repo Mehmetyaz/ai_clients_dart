@@ -102,8 +102,8 @@ for (final page in response.pages) {
   print('Page ${page.index}: ${page.images.length} images');
   for (final image in page.images) {
     print('  - Image ${image.id}');
-    if (image.boundingBox != null) {
-      print('    Bounding box: ${image.boundingBox}');
+    if (image.topLeftX != null) {
+      print('    Bounds: (${image.topLeftX}, ${image.topLeftY}) - (${image.bottomRightX}, ${image.bottomRightY})');
     }
     if (image.imageBase64 != null) {
       print('    Base64 data: ${image.imageBase64!.length} chars');
@@ -147,16 +147,12 @@ final response = await client.ocr.process(
   ),
 );
 
-// 2. Check processing stats
-print('Total pages in document: ${response.totalPages}');
-print('Pages processed: ${response.processedPages}');
-
-// 3. Get usage info
-if (response.usage != null) {
-  print('Tokens used: ${response.usage!.totalTokens}');
+// 2. Get usage info
+if (response.usageInfo != null) {
+  print('Pages processed: ${response.usageInfo!.pagesProcessed}');
 }
 
-// 4. Process the extracted text
+// 3. Process the extracted text
 final fullText = response.text;
 
 // Or get specific page content

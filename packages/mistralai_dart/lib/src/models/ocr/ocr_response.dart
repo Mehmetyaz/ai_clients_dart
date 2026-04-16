@@ -1,77 +1,54 @@
 import 'package:meta/meta.dart';
 
-import '../metadata/usage_info.dart';
+import '../common/equality_helpers.dart';
 import 'ocr_page.dart';
+import 'ocr_usage_info.dart';
 
 /// Response from OCR processing.
 @immutable
 class OcrResponse {
-  /// Unique identifier for the response.
-  final String id;
-
-  /// Object type (always "ocr.response").
-  final String object;
-
   /// The model used for processing.
   final String model;
 
   /// The processed pages with extracted text.
   final List<OcrPage> pages;
 
-  /// Usage statistics.
-  final UsageInfo? usage;
+  /// Usage statistics for the OCR request.
+  final OcrUsageInfo? usageInfo;
 
-  /// Total number of pages in the document.
-  final int? totalPages;
-
-  /// Number of pages that were processed.
-  final int? processedPages;
-
-  /// Timestamp when processing was created.
-  final DateTime? createdAt;
+  /// Formatted annotation response when `documentAnnotationFormat` is set.
+  ///
+  /// Contains the structured output as a JSON string.
+  final String? documentAnnotation;
 
   /// Creates an [OcrResponse].
   const OcrResponse({
-    required this.id,
-    this.object = 'ocr.response',
     required this.model,
     required this.pages,
-    this.usage,
-    this.totalPages,
-    this.processedPages,
-    this.createdAt,
+    this.usageInfo,
+    this.documentAnnotation,
   });
 
   /// Creates an [OcrResponse] from JSON.
   factory OcrResponse.fromJson(Map<String, dynamic> json) => OcrResponse(
-    id: json['id'] as String? ?? '',
-    object: json['object'] as String? ?? 'ocr.response',
     model: json['model'] as String? ?? '',
     pages:
         (json['pages'] as List?)
             ?.map((e) => OcrPage.fromJson(e as Map<String, dynamic>))
             .toList() ??
         [],
-    usage: json['usage'] != null
-        ? UsageInfo.fromJson(json['usage'] as Map<String, dynamic>)
+    usageInfo: json['usage_info'] != null
+        ? OcrUsageInfo.fromJson(json['usage_info'] as Map<String, dynamic>)
         : null,
-    totalPages: json['total_pages'] as int?,
-    processedPages: json['processed_pages'] as int?,
-    createdAt: json['created_at'] != null
-        ? DateTime.tryParse(json['created_at'].toString())
-        : null,
+    documentAnnotation: json['document_annotation'] as String?,
   );
 
   /// Converts to JSON.
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'object': object,
     'model': model,
     'pages': pages.map((e) => e.toJson()).toList(),
-    if (usage != null) 'usage': usage!.toJson(),
-    if (totalPages != null) 'total_pages': totalPages,
-    if (processedPages != null) 'processed_pages': processedPages,
-    if (createdAt != null) 'created_at': createdAt!.toIso8601String(),
+    if (usageInfo != null) 'usage_info': usageInfo!.toJson(),
+    if (documentAnnotation != null) 'document_annotation': documentAnnotation,
   };
 
   /// Gets all extracted text as a single string.
@@ -88,11 +65,15 @@ class OcrResponse {
       identical(this, other) ||
       other is OcrResponse &&
           runtimeType == other.runtimeType &&
-          id == other.id;
+          model == other.model &&
+          listsEqual(pages, other.pages) &&
+          usageInfo == other.usageInfo &&
+          documentAnnotation == other.documentAnnotation;
 
   @override
-  int get hashCode => id.hashCode;
+  int get hashCode =>
+      Object.hash(model, listHash(pages), usageInfo, documentAnnotation);
 
   @override
-  String toString() => 'OcrResponse(id: $id, pages: ${pages.length})';
+  String toString() => 'OcrResponse(model: $model, pages: ${pages.length})';
 }
