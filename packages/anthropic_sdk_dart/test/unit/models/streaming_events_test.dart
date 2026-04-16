@@ -338,6 +338,28 @@ void main() {
 
       expect(delta, isA<CompactionDelta>());
       expect((delta as CompactionDelta).content, 'Compacted context summary');
+      expect(delta.encryptedContent, isNull);
+    });
+
+    test('compaction_delta round-trips encrypted_content', () {
+      final json = {
+        'type': 'compaction_delta',
+        'content': 'Compacted context summary',
+        'encrypted_content': 'enc_delta_payload',
+      };
+
+      final delta = ContentBlockDelta.fromJson(json) as CompactionDelta;
+
+      expect(delta.encryptedContent, 'enc_delta_payload');
+      expect(delta.toJson(), json);
+    });
+
+    test('compaction_delta always serializes encrypted_content key', () {
+      const delta = CompactionDelta('Partial summary');
+      final json = delta.toJson();
+
+      expect(json.containsKey('encrypted_content'), isTrue);
+      expect(json['encrypted_content'], isNull);
     });
   });
 

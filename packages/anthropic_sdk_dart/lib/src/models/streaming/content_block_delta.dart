@@ -27,6 +27,9 @@ sealed class ContentBlockDelta {
   factory ContentBlockDelta.citations(Citation citation) = CitationsDelta;
 
   /// Creates a compaction delta.
+  ///
+  /// To include the encrypted compaction payload, construct [CompactionDelta]
+  /// directly.
   factory ContentBlockDelta.compaction(String? content) = CompactionDelta;
 
   /// Creates a [ContentBlockDelta] from JSON.
@@ -168,24 +171,37 @@ class CompactionDelta extends ContentBlockDelta {
   /// The partial or final compaction summary content.
   final String? content;
 
+  /// Encrypted compaction payload for server-side context restoration.
+  final String? encryptedContent;
+
   /// Creates a [CompactionDelta].
-  const CompactionDelta(this.content);
+  const CompactionDelta(this.content, {this.encryptedContent});
 
   /// Creates a [CompactionDelta] from JSON.
   factory CompactionDelta.fromJson(Map<String, dynamic> json) {
-    return CompactionDelta(json['content'] as String?);
+    return CompactionDelta(
+      json['content'] as String?,
+      encryptedContent: json['encrypted_content'] as String?,
+    );
   }
 
   @override
   Map<String, dynamic> toJson() => {
     'type': 'compaction_delta',
     'content': content,
+    'encrypted_content': encryptedContent,
   };
 
   /// Creates a copy with replaced values.
-  CompactionDelta copyWith({Object? content = unsetCopyWithValue}) {
+  CompactionDelta copyWith({
+    Object? content = unsetCopyWithValue,
+    Object? encryptedContent = unsetCopyWithValue,
+  }) {
     return CompactionDelta(
       content == unsetCopyWithValue ? this.content : content as String?,
+      encryptedContent: encryptedContent == unsetCopyWithValue
+          ? this.encryptedContent
+          : encryptedContent as String?,
     );
   }
 
@@ -194,13 +210,16 @@ class CompactionDelta extends ContentBlockDelta {
       identical(this, other) ||
       other is CompactionDelta &&
           runtimeType == other.runtimeType &&
-          content == other.content;
+          content == other.content &&
+          encryptedContent == other.encryptedContent;
 
   @override
-  int get hashCode => content.hashCode;
+  int get hashCode => Object.hash(content, encryptedContent);
 
   @override
-  String toString() => 'CompactionDelta(content: $content)';
+  String toString() =>
+      'CompactionDelta(content: $content, '
+      'encryptedContent: ${encryptedContent == null ? 'null' : '[${encryptedContent!.length} chars]'})';
 }
 
 /// Delta for signature content updates (extended thinking verification).

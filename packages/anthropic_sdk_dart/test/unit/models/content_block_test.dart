@@ -418,6 +418,27 @@ void main() {
         expect(block, isA<CompactionBlock>());
         final compaction = block as CompactionBlock;
         expect(compaction.content, 'Conversation summary');
+        expect(compaction.encryptedContent, isNull);
+      });
+
+      test('round-trips compaction block with encrypted_content', () {
+        final json = {
+          'type': 'compaction',
+          'content': 'Conversation summary',
+          'encrypted_content': 'enc_payload_xyz',
+        };
+
+        final block = ContentBlock.fromJson(json) as CompactionBlock;
+        expect(block.encryptedContent, 'enc_payload_xyz');
+        expect(block.toJson(), json);
+      });
+
+      test('compaction block always serializes encrypted_content key', () {
+        const block = CompactionBlock(content: 'Summary');
+        final json = block.toJson();
+
+        expect(json.containsKey('encrypted_content'), isTrue);
+        expect(json['encrypted_content'], isNull);
       });
     });
   });
@@ -576,10 +597,25 @@ void main() {
 
         expect(json['type'], 'compaction');
         expect(json['content'], 'Compacted summary');
+        expect(json.containsKey('encrypted_content'), isFalse);
 
         final parsed = InputContentBlock.fromJson(json);
         expect(parsed, isA<CompactionInputBlock>());
         expect((parsed as CompactionInputBlock).content, 'Compacted summary');
+        expect(parsed.encryptedContent, isNull);
+      });
+
+      test('round-trips compaction content with encrypted_content', () {
+        const block = CompactionInputBlock(
+          content: 'Compacted summary',
+          encryptedContent: 'enc_payload_abc',
+        );
+        final json = block.toJson();
+
+        expect(json['encrypted_content'], 'enc_payload_abc');
+
+        final parsed = InputContentBlock.fromJson(json) as CompactionInputBlock;
+        expect(parsed.encryptedContent, 'enc_payload_abc');
       });
     });
 
