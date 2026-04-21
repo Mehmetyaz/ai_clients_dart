@@ -1,19 +1,19 @@
 /// Reasoning effort level for reasoning models.
 ///
-/// Constrains effort on reasoning for reasoning models. Reducing reasoning effort
-/// can result in faster responses and fewer tokens used on reasoning in a response.
+/// Constrains effort on reasoning for reasoning models. Reducing reasoning
+/// effort can result in faster responses and fewer tokens used on reasoning
+/// in a response.
+///
+/// Supported values: [none], [minimal], [low], [medium], [high], [xhigh].
 ///
 /// **Model-Specific Support:**
 ///
-/// - **gpt-5.1**: Defaults to [none] (no reasoning). Supported values: [none],
-///   [low], [medium], [high]. Tool calls supported for all reasoning values.
-///
-/// - **gpt-5-pro**: Defaults to and only supports [high] reasoning effort.
-///
-/// - **Models before gpt-5.1**: Default to [medium] reasoning effort and do not
-///   support [none].
-///
-/// - **Models after gpt-5.1-codex-max**: Support all values including [xhigh].
+/// - **gpt-5.1**: Defaults to [none] (no reasoning). Supported values are
+///   [none], [low], [medium], and [high]. Tool calls are supported for all
+///   reasoning values.
+/// - **Models before gpt-5.1**: Default to [medium] and do not support [none].
+/// - **gpt-5-pro**: Defaults to and only supports [high].
+/// - **[xhigh]**: Supported for all models after gpt-5.1-codex-max.
 enum ReasoningEffort {
   /// Unknown effort level (fallback for unrecognized values).
   unknown('unknown'),
